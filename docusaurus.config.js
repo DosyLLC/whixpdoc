@@ -65,8 +65,7 @@ const config = {
         docs: {
           editLocalizedFiles: true,
           sidebarPath: require.resolve("./sidebars.js"),
-          // editUrl:
-          //   "https://github.com/rrousselGit/riverpod/edit/master/website/",
+          editUrl: "https://github.com/DosyLLC/whixpdoc",
         },
         theme: {
           customCss: require.resolve("./src/scss/main.scss"),
