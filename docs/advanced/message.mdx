@@ -1,0 +1,172 @@
+---
+title: Sending an initial Message
+version: 1
+---
+
+Messaging is a core functionality of the XMPP protocol, and the Whixp package provides a robust framework for building and sending messages to dedicated recipients.
+
+Whixp offers several classes and methods to facilitate message creation and transmission. For example, you can create a message using the `Message` class:
+
+```dart
+final message = Message(body: 'Hello from Vsevolod');
+```
+
+n Whixp, you have the flexibility to customize various properties of your message, including its type, sender (from), and recipient (to). This allows you to tailor your messages to suit different contexts and requirements.
+
+```dart
+message
+    ..type = MessageType.groupchat.name
+    ..to = JabberID('alyosha@localhost');
+```
+
+:::tip
+**type**: This property defines the type of message you are sending. In this example, it’s set to `MessageType.groupchat`.name, indicating that the message is intended for a group chat. Other possible message types include:
+
+- `MessageType.chat` for one-on-one chats.
+- `MessageType.headline` for messages that are not intended for a specific user but are meant to convey information.
+- `MessageType.normal` type represents standard messages that do not fit into any of the other specific categories.
+- `MessageType.error` to indicate an error message.
+  :::
+
+In this example, a message stanza is constructed with the body text "Hello from Vsevolod." You also have the option to include additional fields such as the subject, nickname, and thread, allowing you to customize your message according to your needs.
+
+Once the message is built, you can send it to the intended recipient using the `send` method:
+
+```dart
+whixp.send(message);
+```
+
+:::info
+Keep in mind that the `send` method can transmit all types of stanzas created by extending the `Stanza` class.
+:::
+
+## Sending messages directly
+
+In addition to building and sending messages separately, Whixp provides a convenient built-in method called `sendMessage`. This method not only constructs the message stanza but also sends it in a single step, streamlining the process:
+
+```dart
+whixp.sendMessage(
+        JabberID('alyosha@localhost'),
+        body: 'Hello from Vsevolod!',
+        type: MessageType.groupchat,
+      );
+```
+
+## Extending Message stanzas in Whixp
+
+The Whixp package makes it easy to manipulate your message stanzas, allowing you to add payloads, extensions, and other custom data as needed. In this section, we will discuss how to extend your message stanzas and the benefits of doing so.
+
+### Why Extend Message Stanzas?
+
+Extending message stanzas can enhance the functionality of your XMPP application by allowing you to embed additional information directly within the messages. This can be especially useful in scenarios where you want to streamline processes or add custom behaviors.
+
+For example, when I was developing a chat application over the XMPP protocol, I encountered a situation where I needed to implement a points system associated with sent messages. Each message was linked to a specific amount of experience points that users could earn.
+
+### The challenge
+
+In my initial approach, sending a message required additional requests to update the user's points in the remote database. This led to unexpected delays and increased server load, as each message would trigger a request to increment the user's points. To address this, I implemented a handler on the server side to manage each message request, parse the relevant point data, and then send a request to a third-party `incrementPoint` endpoint. While this setup worked, it was inefficient and required careful synchronization between the local and remote states.
+
+### The solution: Message Extensions
+
+To optimize this process, I utilized MessageExtensions within Whixp. By embedding point information directly within the message stanza, I eliminated the need for separate requests. When a user sends a message, the relevant point data is included as part of the message payload. The XMPP server can then process this information and update the user's points seamlessly.
+
+```dart
+final message = Message(body: 'Hello from Vsevolod!')
+        ..to = JabberID('alyosha@localhost');
+      message.addExtension(
+        MessageExtension('extra')..addAttribute('points', '50'),
+      );
+
+      whixp.send(message);
+```
+
+In this example, the `MessageExtension` class is created to hold the points data, and it is added to the message.
+
+```plaintext
+[Whixp] SEND: <message to="alyosha@localhost" type="chat"><body>Hello from Vsevolod!</body><extra points="50"/></message>
+```
+
+## Adding payloads to Message stanzas
+
+In addition to extending message stanzas, you can also directly add payloads to your message stanzas in the Whixp package. This capability allows you to embed custom data within your messages, enhancing their functionality and enabling richer interactions.
+
+### How to add a payload
+
+To add a payload to your message stanza, you first need to create a custom stanza by extending the `Stanza` class. For instance, let’s create a stanza called `PointsStanza` that will hold point-related data:
+
+```dart
+class PointsStanza extends Stanza {
+  PointsStanza(this.points);
+
+  final int points;
+
+  @override
+  XmlElement toXML() => WhixpUtils.xmlElement(
+        name,
+        attributes: {'points': points.toString()},
+      );
+
+  @override
+  String get name => 'extra';
+}
+
+void main() {
+    whixp.addEventHandler(
+        'streamNegotiated',
+        (_) => whixp.sendMessage(
+            JabberID('alyosha@localhost'),
+            body: 'Hello, Alyosha!',
+            payloads: <Stanza>[PointsStanza(50)],
+        ),
+    );
+}
+```
+
+## Listening to incoming messages
+
+Handling incoming messages in Whixp follows a straightforward approach similar to other event handlers. By specifying the event name and defining the type of the message, you can efficiently process incoming stanzas with minimal effort.
+
+To set up a message handler, you can use the addEventHandler method with the event name `message` and specify the type as `Message`. Here’s how you can do it:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+    if (message == null) return;
+
+    final body = message.body;
+    final from = message.from;
+    final to = message.to;
+    final extensions = message.extensions;
+
+    log('Received message from $from to $to: $body');
+    log('Extensions: $extensions');
+  });
+```
+
+### Handling stanza IDs in messages
+
+When working with XMPP messages, it’s often important to track and manage message identifiers. Stanza IDs are unique identifiers that help correlate requests and responses, making it easier to handle message flows and ensure reliable communication.
+
+### Retrieving Stanza IDs
+
+In the following example, we enhance the message handling by checking for a stanza ID associated with the incoming message:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+    if (message == null) return;
+
+    final stanzaID = message.get<StanzaID>();
+    if (stanzaID.isNotEmpty) {
+      log('Received message with stanza ID: ${stanzaID.first.id}'); // Will print out unique ID
+    }
+  });
+```
+
+:::note
+The `get` method allows you to access child payloads associated with a message. This functionality is essential for retrieving additional information that may be included in a message stanza, such as custom data or metadata. Understanding how to effectively use this method can enhance your application's capability to manage and process messages.
+
+```dart
+final payloads = message.get<Stanza>();
+```
+
+`PayloadType` is the type of the payload you wish to retrieve. It could be any calss that extends `Stanza`.
+:::

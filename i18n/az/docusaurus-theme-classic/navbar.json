@@ -1,0 +1,18 @@
+{
+  "title": {
+    "message": "Whixp",
+    "description": "The title in the navbar"
+  },
+  "logo.alt": {
+    "message": "Whixp",
+    "description": "The alt text of navbar logo"
+  },
+  "item.label.How to use": {
+    "message": "İstifadəsi",
+    "description": "Navbar item with label How to use"
+  },
+  "item.label.GitHub": {
+    "message": "GitHub",
+    "description": "Navbar item with label GitHub"
+  }
+}

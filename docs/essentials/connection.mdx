@@ -1,0 +1,55 @@
+---
+title: Connection establishement
+version: 1
+---
+
+After completing the necessary configuration, it's time to establish an initial connection to the XMPP server.
+
+Connecting to the server with Whixp is straightforward. You only need to call one method to make the connection:
+
+```dart
+final whixp = Whixp(
+    jabberID: 'vsevolod@localhost',
+    password: 'passwd',
+    internalDatabasePath: 'initial',
+    logger: Log(enableWarning: true),
+  );
+
+  whixp.connect();
+```
+
+If you check the logs, you will see the "Finished processing stream features." message, which indicates that the connection was successful and that further processing will take place:
+
+```console
+[Whixp] SEND: <iq type="set" id="51ec9-2113-8b29-44fbca57"><bind xmlns="urn:ietf:params:xml:ns:xmpp-bind"/></iq>
+[Whixp] RECEIVED: <iq type='result' id='51ec9-2113-8b29-44fbca57' xmlns="jabber:client"><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><jid>vsevex@localhost/179773712250924621162146</jid></bind></iq>
+[Whixp] SEND: <enable resume="true" xmlns="urn:xmpp:sm:3"/>
+[Whixp] RECEIVED: <enabled resume='true' max='30' id='g2gCbQAAABgxNzk3NzM3MTIyNTA5MjQ2MjExNjIxNDZtAAAACKNXIdgVg21Z' xmlns='urn:xmpp:sm:3'/>
+[Whixp] Starting Ping keep alive...
+[Whixp] Finished processing stream features.
+```
+
+## Reconnection policy
+
+You can configure the Whixp instance to automatically reconnect in case of any errors. This can be achieved by providing a reconnection policy; however, the built-in options are limited. You can either develop your own reconnection policy or use the `RandomBackoffReconnectionPolicy` class. You need to specify the minimum and maximum backoff times, from which a random value will be selected for reconnection attempts.
+
+```dart
+final whixp = Whixp(
+    jabberID: 'vsevolod@localhost',
+    password: 'passwd',
+    internalDatabasePath: 'whixp',
+    reconnectionPolicy: RandomBackoffReconnectionPolicy(0, 1),
+  );
+
+    whixp.connect();
+```
+
+When there is an error with connection, the Whixp debug output will be similar to this:
+
+```plaintext
+[Whixp] Resetting reconnection policy
+[Whixp] Trying to connect to localhost on port 5222
+[Whixp] Failure occured. Starting random backoff with 5s
+[Whixp] Timer elapsed. Waiting for lock...
+[Whixp] Reconnecting...
+```

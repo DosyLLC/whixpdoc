@@ -1,0 +1,71 @@
+---
+title: Logger
+sidebar_position: 10
+version: 1
+---
+
+Logging outputs are essential in applications like Whixp. The library provides an ideal logging system that allows developers to observe the results of each sent stanza and communication message, as well as to be aware of any exceptions that occur while connecting to or communicating with the server. This page explains how to customize the logging system according to your needs.
+
+By default, Whixp outputs informational and debug messages. The categorization of these messages is handled internally, so you cannot manually mark each message as a warning or error. If you need additional debugging information, you can enable warning and error messages with the following code snippet:
+
+```dart
+final whixp = Whixp(
+    host: 'localhost',
+    logger: Log(enableError: true, enableWarning: true),
+  );
+```
+
+Enabling warning and error messages allows you to capture errors during processing. Additionally, the logger will print all incoming and outgoing stanzas (including IQ, presence, and message stanzas) in the debug console, even if you have added handlers (we will dive into this functionality later on).
+
+## Timestamps
+
+If you need to include timestamps for each message, you can manually enable this feature in the `Log` instance. While this function is useful, it is not enabled by default:
+
+```dart
+final whixp = Whixp(host: 'localhost', logger: Log(includeTimestamp: true));
+```
+
+When this feature is enabled, your output will look like this:
+
+```console
+[Whixp] 13:00:00.000 SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
+[Whixp] 13:00:00.000 RECEIVED: <stream:features xmlns="http://etherx.jabber.org/streams"><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>DIGEST-MD5</mechanism><mechanism>PLAIN</mechanism><mechanism>SCRAM-SHA-512</mechanism><mechanism>SCRAM-SHA-200</mechanism><mechanism>SCRAM-SHA-1</mechanism><mechanism>X-OAUTH2</mechanism></mechanisms><register xmlns='http://jabber.org/features/iq-register'/></stream:features>
+[Whixp] 13:00:00.000 SEND: <auth mechanism="SCRAM-SHA-1" xmlns="urn:ietf:params:xml:ns:xmpp-sasl">biwsbj12c2V2ZXgscj1RRkE5VExDUFVsNWUrNGpOOUt0ei9BPT0=</auth>
+```
+
+As shown, the timestamp for each message is included in the output.
+
+Additionally, you can print the current date alongside the timestamp by enabling the `showDate` property:
+
+```dart
+final whixp = Whixp(
+    host: 'localhost',
+    logger: Log(
+      enableError: true,
+      enableWarning: true,
+      includeTimestamp: true,
+      showDate: true,
+    ),
+  );
+```
+
+With this setting, the logger output will appear as follows:
+
+```plaintext
+01/01/2024 13:00:00.000
+```
+
+## Disabling all outputs
+
+You can choose not to display any outputs based on your needs. To do this, configure Whixp by setting all logging flags to `false`:
+
+```dart
+final whixp = Whixp(
+    internalDatabasePath: 'whixp',
+    logger: Log(enableDebug: false, enableInfo: false),
+  );
+```
+
+:::info
+When using the iOS simulator, native ASCII color outputs may not appear colorized. This issue stems from the Dart VM and remains unresolved, as noted in the official [Github issues](https://github.com/flutter/flutter/issues/64491).
+:::

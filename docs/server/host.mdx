@@ -1,0 +1,48 @@
+---
+title: Host
+sidebar_position: 7
+version: 1
+---
+
+import { Link } from "/src/components/Link";
+
+This section explains how host selection works in Whixp.
+
+By default, when you provide a <Link documentID="essentials/jid" /> without explicitly specifying a host, the host selection process is based on the domain part of the Jabber ID. The domain serves as the key element for determining the appropriate server to connect to. To understand the structure and components of a Jabber ID, you can refer to [XEP-0029](https://xmpp.org/extensions/xep-0029.html).
+
+For example, if the Jabber ID "vsevolod@dosy.app" is used to connect to the server, the domain part, in this case, is "dosy.app." Whixp will perform a DNS SRV (Service) record lookup for the domain to determine the appropriate server and port for the connection.
+
+```dart
+final whixp = Whixp(jabberID: 'vsevolod@dosy.app');
+```
+
+In practical terms, the SRV lookup allows Whixp to find the correct XMPP server based on the domain based on the domain specified in the Jabber ID, which eliminates the need for manually entering a server address. This is particularly useful when multiple services are hosted under the same domain or when the server infrastructure is distributed.
+
+:::caution
+In cases where the SRV lookup does not yield a result or is not configured, Whixp will attempt to connect directly to the domain provided in the Jabber ID.
+:::
+
+## Defining host manually
+
+In cases where you need to manually enter the host, Whixp allows you to specify a dedicated host as needed. When a host is explicitly defined, the SRV lookup is bypassed. As a result, both the host and port must correctly correspond to an existing server; otherwise, the connection cannot be established.
+
+```dart
+/// Will try to connect to the server at `dosy.app` on port `5223`.
+final whixp =
+    Whixp(jabberID: 'vsevolod@dosy.app', host: 'dosy.app', port: 5223);
+```
+
+If the user wants to connect to the server without providing any credentials (ANONYMOUS authentication), the host must be entered correctly. In this case, defining a Jabber ID is not required for the connection.
+
+```dart
+/// Will try to connect to the server at `dosy.app` on port `5223`, but ANONYMOUS'ly.
+final whixp = Whixp(host: 'dosy.app', port: 5223);
+```
+
+## SRV lookups
+
+An SRV record, stored in the DNS (Domain Name System), specifies the hostname and port of the server responsible for handling specific services for a domain.
+
+When a <Link documentID="essentials/jid" /> is provided without a specified server, XMPP clients perform an SRV lookup based on the domain part of the JID. This lookup helps identify the appropriate XMPP server and port, simplifying the connection process and supporting scalability by allowing services to be distributed across multiple servers.
+
+For more information, please refer to this [wiki](https://wiki.xmpp.org/web/SRV_Records).
