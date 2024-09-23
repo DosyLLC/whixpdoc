@@ -1,7 +1,5 @@
 # Whixp documentation
 
-<div align="center">
-    <img alt="whixp" src="https://raw.githubusercontent.com/vsevex/whixp/45439a108689b831c39beefa8c98c563f50e3d4f/assets/whixp_dark.svg">
-</div>
+Welcome to the Whixp documentation! This site serves as a comprehensive resource for developers looking to integrate the Whixp package into their applications. Whixp is a powerful library designed for seamless communication over the XMPP (Extensible Messaging and Presence Protocol), enabling real-time messaging, presence notifications, and more.
 
 This website is built using [Docusaurus](https://docusaurus.io/), a modern static website generator.
