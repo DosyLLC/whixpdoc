@@ -7,4 +7,5 @@ void main() {
 
   whixp = Whixp(host: 'localhost', port: 5442, disableStartTLS: true);
   whixp.connect();
+  /* SNIPPET END */
 }

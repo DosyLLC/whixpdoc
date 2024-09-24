@@ -20,4 +20,5 @@ void main() {
 
     log('Message with $thread and $body is from: $from');
   });
+  /* SNIPPET END */
 }
