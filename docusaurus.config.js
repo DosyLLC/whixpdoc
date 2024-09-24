@@ -62,6 +62,9 @@ const config = {
     [
       "@docusaurus/preset-classic",
       {
+        blog: {
+          blogSidebarCount: 0,
+        },
         docs: {
           editLocalizedFiles: true,
           sidebarPath: require.resolve("./sidebars.js"),
