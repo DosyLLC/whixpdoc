@@ -1,0 +1,45 @@
+---
+title: Databaza
+sidebar_position: 9
+version: 1
+---
+
+Whixp uses the [Hive](https://pub.dev/packages/hive) database as a built-in approach to handle the primitive parats of the package with the local system.
+
+Managing the stream resumption ID and saving this unique ID to the local database requires a local database solution. In addition to this ID, the user needs to save the last acknowledged stanzas, unacknowledged stanzas, and other properties related to this XEP. We will discuss what stream resumption is and why it is beneficial.
+
+By default, this plugin is enabled in Whixp, and you cannot disable it at this time. Therefore, you need to declare the database path whether you are using this package in a Dart application or a Flutter application.
+
+:::warning
+If you forget to declare the database path, you will encounter an exception related to this error.
+
+The exception will be similar to the one below:
+
+```plaintext
+Unhandled exception:
+PathNotFoundException: Creation failed, path = '' (OS Error: No such file or directory, errno = 2)
+```
+
+:::
+
+To declare the path in the properties, you can assign any name you like to the `internalDatabasePath` parameter.
+
+```dart
+final whixp = Whixp(host: 'localhost', internalDatabasePath: 'anonymous');
+```
+
+This property behaves differently in a Flutter application. You need to retrieve the local path of the application from the operating system. You can achieve this using packages such as [path_provider](https://pub.dev/packages/path_provider) or by creating the desired folder within the retrieved directory.
+
+```dart
+import 'package:path_provider/path_provider.dart';
+
+late final io.Directory _currentDirectory;
+
+void main() {
+    _currentDirectory = await getApplicationDocumentsDirectory();
+
+    final whixpPath = '${_currentDirectory.path}/example';
+
+    final whixp = Whixp(host: 'localhost', internalDatabasePath: whixpPath);
+}
+```

@@ -1,0 +1,57 @@
+---
+title: Jabber Identifier
+sidebar_position: 8
+version: 1
+---
+
+Serves as a unique address for each user. Structurally similar to an email address, a JID comprises a username and a domain, separated by an "@" symbol—for example, **vsevolod@dosy.app**. This format ensures that every user on the XMPP network can be uniquely identified and contacted using their [JID](https://en.wikipedia.org/wiki/XMPP#Addressing).
+
+## Understanding JID usage in the Whixp package
+
+Using the Whixp package, you can easily generate a Jabber ID (JID) in Dart. For example:
+
+```dart
+final vsevolod = JabberID('vsevolod@dosy.app');
+```
+
+This creates a `JabberID` instance with the given Jabber address. The `JabberID` class also offers several built-in getters to access various parts of the JID, such as the node (user), domain, and resource. These methods make it easy to parse and utilize individual components of the JID in your projects.
+
+### Punycode and IDNA
+
+**Punycode** is an encoding method used to convert Unicode characters into a format that can be represented using the ASCII character set. This is particularly useful for internationalized domain names (IDNs), which may contain non-ASCII characters. When a JID includes such characters, it must be converted to Punycode for proper handling in the protocol.
+
+**Internationalized Domain Name (IDNA)** is the specification that allows the use of non-ASCII characters in domain names. When preparing a JID, any domain part containing non-ASCII characters should be converted to its Punycode representation to ensure seamless communication.
+
+### String preperation
+
+String preparation involves several steps to ensure that the JID conforms to XMPP standards:
+
+- **Normalization**: Normalize the string to a consistent format, which may include converting it to lowercase and removing any extraneous whitespace.
+- **Trimming**: Remove any leading or trailing spaces from the JID components.
+- **Encoding**: Encode special characters according to XMPP specifications, which may involve using UTF-8 encoding.
+
+In the codebase of Whixp, there is a comprehensive list of characters that are explicitly prohibited in the domain part of a JID. Here's a breakdown of the types of characters included:
+
+1. **Control characters**:
+
+   - ASCII characters ranging from `\x00` to `\x1F` are control characters that are not visible and serve special functions (e.g., line breaks, tabs). These characters should never appear in a domain name as they can interfere with proper parsing and communication.
+   - The DEL character (`\x7F`) is also excluded for similar reasons.
+
+2. **Whitespace characters**:
+
+   - Specific whitespace characters such as tabs (`\t`), new lines (`\n`), and carriage returns (`\r`) are forbidden in the domain part of a JID. The presence of these characters can cause issues in processing and interpreting the JID.
+
+3. **Special Characters**:
+
+   - The string includes various special characters such as spaces, punctuation marks, and symbols: `!"#$%&'()\*+,-./:;<=>?@[\]^\_{|}~`
+   - These characters are typically reserved for specific syntactical functions in various contexts and may lead to ambiguities if included in a domain name.
+
+The following profiles are recognized within the string preparation process:
+
+- nodeprep
+- nameprep
+- resourceprep
+- saslprep
+- nodeprep-prohibit
+
+These preperations map characters and disallow character categories according to [RFC 3454](https://datatracker.ietf.org/doc/html/rfc3454).

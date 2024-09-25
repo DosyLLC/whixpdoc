@@ -1,0 +1,81 @@
+---
+title: Autentikasiya
+sidebar_position: 10
+version: 1
+---
+
+In XMPP protocol, various mechanisms are employed to authenticate clients, including traditional username/password methods, token-based authentication, and more secure techniques like [SASL (Simple Authentication and Security Layer)](https://en.wikipedia.org/wiki/Simple_Authentication_and_Security_Layer). The choice of authentication mechamism can depend on the specific security requirements and the deployment environment of the XMPP server. This section delives into the authentication methods in XMPP, exploring their functionality, benefits and the usage of several authentication methods in Whixp package.
+
+## ANONYMOUS
+
+[Anonymous](https://xmpp.org/extensions/xep-0175.html) authentication is one of the available mechanisms within XMPP that allows users to connect to an XMPP server without providing a traditional username or password. This method typically used in scenarious where temporary, non-registered access is desired, such as guest or trial access to a service, public chatrooms, etc.
+
+```dart
+final whixp = Whixp(
+    host: 'localhost',
+    disableStartTLS: true,
+    internalDatabasePath: 'anonymous',
+  );
+
+whixp.connect();
+```
+
+When you try to connect to the server as an `ANONYMOUS` user, the log will appear as follows:
+
+```console
+[Whixp] SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
+[Whixp] Authentication failed with the mechanism: PLAIN
+[Whixp] RECEIVED: <stream:features xmlns="http://etherx.jabber.org/streams"><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>ANONYMOUS</mechanism><mechanism>PLAIN</mechanism></mechanisms><register xmlns='http://jabber.org/features/iq-register'/></stream:features>
+[Whixp] SEND: <auth mechanism="ANONYMOUS" xmlns="urn:ietf:params:xml:ns:xmpp-sasl">QW5vbnltb3Vz</auth>
+[Whixp] SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
+[Whixp] RECEIVED: <success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
+[Whixp] Finished processing stream features.
+```
+
+You can see from the logs that we failed while trying to authenticate with the server using the `PLAIN` authentication method. This occurred due to the priority of the authentication mechanisms based on internally assigned values. The priority list of the authentication mechanisms is provided below.
+
+## PLAIN
+
+This method is one the simplest and most widely used mechanisms. It allows clients to authenticate by sending a user's credentials (username and password) to the server in plain text or a minimally encoded form.
+
+Despite the simplicity, the `PLAIN` method is not inherently secure because the credentials are transmitted without encryption, which makes it vulnerable to eavesdropping attacks if used over an unencrypted connection. Therefore, it is strongly recommended to use PLAIN authentication exclusively over encrypted TLS channels to ensure that credentials are protected during transmission.
+
+```dart
+final whixp = Whixp(
+    jabberID: 'vsevolod@localhost',
+    password: 'passwd',
+    internalDatabasePath: 'anonymous',
+    disableStartTLS: true,
+  );
+
+whixp.connect();
+```
+
+:::info
+Keep in mind that to connect using either of these two methods (`PLAIN` or `ANONYMOUS`), it is essential to correctly configure your server’s configuration file. Proper configuration ensures that the server allows or prioritizes the desired authentication methods and aligns with your security and usability requirements.
+:::
+
+When you try to connect to the server as an `PLAIN` credentials, the log will appear as follows:
+
+```console
+[Whixp] SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
+[Whixp] RECEIVED: <stream:features xmlns="http://etherx.jabber.org/streams"><mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><mechanism>ANONYMOUS</mechanism><mechanism>PLAIN</mechanism></mechanisms><register xmlns='http://jabber.org/features/iq-register'/></stream:features>
+[Whixp] SEND: <auth mechanism="PLAIN" xmlns="urn:ietf:params:xml:ns:xmpp-sasl">AHZzZXZleAB2ZXNldnUxMw==</auth>
+[Whixp] SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
+[Whixp] RECEIVED: <success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
+```
+
+## SASL SHA authentication methods
+
+In SASL SHA authentication methods, the client and server do not exchange plaintext passwords. Instead, the user’s credentials are hashed using the SHA algorithm, and the hashed values are compared during the authentication process. The inclusion of salts (random data added to the password before hashing) ensures that even if two users have the same password, their stored credentials will differ, making it more difficult for attackers to crack passwords using precomputed hash tables (e.g., rainbow tables).
+
+Whixp supports various SHA methods, including **SASL-SHA-1**, **SASL-SHA-256**, **SASL-SHA-384**, and **SASL-SHA-512**. When connecting to the server, Whixp iterates through all of these authentication methods until the user successfully logs in. If none of these methods work, Whixp attempts to log the user in as an anonymous user (if the server configuration allows anon login).
+
+### Priority list of authentication mechanisms
+
+1. SASL-SHA-1
+2. SASL-SHA-512
+3. SASL-SHA-384
+4. SASL-SHA-256
+5. PLAIN
+6. ANONYMOUS

@@ -1,0 +1,30 @@
+---
+title: Ejabberd IM üçün örnək konfiqurasiya
+sidebar_position: 5
+version: 1
+---
+
+This documentation will guide you through configuring your Ejabberd server on a local machine to establish initial connections, and send and receive stanzas.
+
+## Configuration steps:
+
+1. **Install Ejabberd**: First, ensure Ejabberd is installed on your local machine. You can download it from the [official Ejabberd website](https://www.process-one.net/en/ejabberd/downloads/) and follow the installation instructions for your operating system.
+
+2. **Configure basic settings**: After installation, you'll need to configure the basic settings. Open the `ejabberd.yml` configuration file, typically located in the `etc` directory of your Ejabberd installation. You can refer to [this](https://github.com/processone/ejabberd/blob/master/ejabberd.yml.example) example configuration.
+
+3. **Generate and use self-signed certificates (for TLS)**: For TLS communication, you must provide a certificate file. If you do not have a certificate from a trusted Certificate Authority (CA), you can generate a self-signed certificate for local testing.
+
+4. **Add the self-signed certificate to trusted certificates**: For testing TLS locally, add your self-signed certificate to your machine's trusted certificates database. The steps for this vary by operating system.
+
+5. **Start Ejabberd**: Launch the Ejabberd server to apply the configuration changes:
+
+```console
+ejabberdctl start
+```
+
+Now that you have completed the configuration of the Ejabberd server, it's time to connect to it using Whixp. However, first, we need to explore specific aspects of XMPP to understand what this package is capable of.
+
+## Notes:
+
+- **TLS Encryption**: While TLS is not mandatory for local testing, it is strongly recommended for production environments to ensure secure communication. For production, you should use a certificate issued by a trusted CA.
+- **Self-Signed Certificates**: Avoid using self-signed certificates in a production environment due to security risks. Instead, use certificates from a reputable CA to ensure trust and security.

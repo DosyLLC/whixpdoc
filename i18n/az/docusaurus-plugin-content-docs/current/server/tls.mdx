@@ -1,0 +1,33 @@
+---
+title: DirectTLS vs. StartTLS
+sidebar_position: 6
+version: 1
+---
+
+**DirectTLS** and **StartTLS** are two methods used to secure communications via the Transport Layer Security (TLS) protocol. Although these terms are primarily associated with email communication, they are also applicable to XMPP. Both methods play crucial roles in ensuring secure exchanges of information in various contexts.
+
+## DirectTLS
+
+Also known as "implicit TLS", is a method where a secure connection is established before any communication begins. The connection to the server starts directly with TLS encryption.
+
+## StartTLS
+
+Is a protocol command used to upgrade an existing, unencrypted connection to a secure, encrypted one using TLS.
+
+## The difference in Whixp
+
+By default, Whixp tries to connect to the server through an unencrypted channel. After acquiring the stream features from the server, the client decides whether to upgrade the connection to TLS. As the developer, you can choose whether to secure the connection via TLS. Alternatively, you can configure the connection to start directly with TLS encryption using a different port (for example, port 5223 in the Ejabberd server). In this case, the connection will be secured by default, eliminating the need to upgrade the connection later.
+
+This example demonstrates DirectTLS:
+
+```dart
+/// Uses DirectTLS by default, no need to upgrade after the connection made.
+final whixp = Whixp(useTLS: true);
+```
+
+In this example, the Whixp instance is configured not to upgrade the connection after it is established.
+
+```dart
+/// Disables StartTLS.
+final whixp = Whixp(disableStartTLS: true);
+```

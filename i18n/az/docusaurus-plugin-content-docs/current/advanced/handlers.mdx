@@ -1,0 +1,107 @@
+---
+title: Handler'lər ilə məntiq qurmaq
+version: 1
+---
+
+In Whixp, using handlers is essential. Handlers form the backbone of your logic for managing communication messages, stanzas, and errors while interacting with the server. You can explore the [source code](https://github.com/vsevex/whixp/blob/main/lib/src/handler/eventius.dart) of this package to gain deeper insights into the use cases for handlers.
+
+This page outlines several handler usages and their purposes, while additional examples will be covered in the following sections.
+
+In Whixp, you can add handlers using the `addEventHandler` method on the created instance. This is a generic method, so you must specify the type of the incoming object; otherwise, you may encounter unexpected runtime errors. The method accepts two parameters: the first specifies the name of the event, and the second is the handler. Your handlers can be either synchronous or asynchronous. For example:
+
+```dart
+whixp.addEventHandler<TransportState>('state', (state) {
+    if (state == TransportState.connected) {
+      log('Connected');
+    }
+  });
+```
+
+In this example, we add an event handler to manage state changes in the current connection. We specify the type as `TransportState`, and the handler name is `state`.
+
+## Handlers
+
+### `state`
+
+Let’s start with our main handler, which will be responsible for notifying the user about the current connection state. For example, if the socket is attempting to connect to the server, it will emit `TransportState.connecting` to inform the user of this status.
+
+```dart
+whixp.addEventHandler<TransportState>('state', (state) {
+    if (state == TransportState.connecting) {
+      log('Connecting');
+    } else if (state == TransportState.connected) {
+      log('Connected');
+    } else if (state == TransportState.disconnected) {
+      log('Disconnected');
+    } else if (state == TransportState.connectionFailure) {
+      log('Connection failure occured');
+    } else if (state == TransportState.reconnecting) {
+      log('Reconnecting');
+    }
+  });
+```
+
+### `streamNegotiated`
+
+This handler indicates whether the stream has been successfully negotiated and is ready to send and receive stanzas. It serves as the starting point for your actual program. Once this emitter signals that the stream is active, you can begin handling communication with the XMPP server.
+
+```dart
+whixp.addEventHandler('streamNegotiated', (_) {
+    log('Stream negotiated.');
+  });
+```
+
+### `streamError`
+
+A stream error occurs when there is a problem with the communication between the client and the XMPP server. This could happen for various reasons, such as protocol violations, authentication failures, or server-related issues. To handle these errors effectively, you can use a this handler and write your own logic to what to do in this case.
+
+```dart
+whixp.addEventHandler<StreamError>('streamError', (error) {
+    // Do something with the error.
+    log(error?.text);
+  });
+```
+
+### `startSession`
+
+After the stream has been negotiated and the connection has been established, you can use the `startSession` handler to formally begin the session.
+
+```dart
+whixp.addEventHandler('startSession', (_) {
+    log('Session started!');
+  });
+```
+
+### `endSession`
+
+Handler attached to this event will be proceed when an active XMPP session is terminated.
+
+```dart
+whixp.addEventHandler('endSession', (_) {
+    log('Session ended.');
+  });
+```
+
+### `failedAuthentication`
+
+This event is triggered when an authentication attempt with the XMPP server fails. This event provides feedback on why the authentication was unsuccessful, allowing you to handle errors such as incorrect credentials, missing permissions, or unsupported authentication mechanisms.
+
+```dart
+whixp.addEventHandler<String>('failedAuthentication', (reason) {
+    log('Failed to authenticate: $reason');
+  });
+```
+
+### `connectionFailure`
+
+When an attempt to establish a connection with the XMPP server fails due to various reasons this event will be triggered.
+
+```dart
+whixp.addEventHandler('connectionFailure', (dynamic exception) {
+    log('Connection failed: $exception');
+  });
+```
+
+:::warning
+The incoming data is always nullable, which means you need to check whether the stanza or data is null before processing or manipulating this information.
+:::

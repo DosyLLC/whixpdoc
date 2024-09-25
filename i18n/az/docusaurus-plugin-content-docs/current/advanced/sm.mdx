@@ -1,0 +1,38 @@
+---
+title: Stream Management
+version: 1
+---
+
+As XMPP operates over persistent TCP connections, [stream management](https://xmpp.org/extensions/xep-0198.html) provides mechanisms to handle interruptions and maintain session continuity, ensuring that messages and presence updates are delivered even in the face of network instability.
+
+The integration of stream management in XMPP significantly enhances the user experience by providing a seamless communication flow. Users can engage in conversations without worrying about interruptions, ensuring that their messages are sent and received reliably.
+
+If the server supports stream management, Whixp automatically attempts to enable stream resumption. When this feature is active, a resumption ID is stored in the local database for future reconnection. Should the stream resumption fail, Whixp will retry to enable it and request a new resumption ID. All of these processes occur automatically, so there’s no need for manual intervention.
+
+Whixp also provides a handler for processing stanza acknowledgments (acks), which is primarily used in message handling. When you send a message to a recipient, the server does not immediately inform you of the message's delivery status. Instead, it sends a response stanza indicating that the message is on the server. At this point, you can consider the message as "sent." The actual delivery to the recipient is managed server-side, and this is further detailed in protocols such as [XEP-0184: Message Receipts](https://xmpp.org/extensions/xep-0184.html) and [XEP-0333: Displayed Markers](https://xmpp.org/extensions/xep-0333.html). These extensions facilitate more granular control over message acknowledgment and delivery tracking, enhancing the overall messaging experience.
+
+## Handling acked stanzas
+
+You can handle acknowledged stanzas through a specific event handler.
+
+```dart
+whixp.addEventHandler<Stanza>('ackedStanza', (stanza) {
+    if (stanza is Message) {
+      final stanzaIDs = stanza.get<StanzaID>();
+      print('Message acked: ${stanzaIDs.first.id}');
+    }
+  });
+```
+
+The handler listens for the `ackedStanza` event, which is triggered when the server acknowledges a stanza.
+
+This handler allows you to track all emitted stanzas, including `Presence` and `IQ` stanzas as well as `Message` stanzas.
+
+You can also handle raw acknowledged stanzas using the `ackedRaw` event.
+
+```dart
+whixp.addEventHandler<String>(
+    'ackedRaw',
+    (stanza) => print('Acked raw: $stanza'),
+  );
+```

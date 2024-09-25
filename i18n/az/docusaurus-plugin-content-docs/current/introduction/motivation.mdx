@@ -1,0 +1,29 @@
+---
+title: Motivasiya
+sidebar_position: 2
+version: 1
+---
+
+Whixp leverages XMPP functionalities to provide a robust foundation for Dart and Flutter applications to communicate with XMPP servers. During my search for protocol support in the Flutter environment, I found that while there are officially supported SDKs for protocols like [Matrix](https://matrix.org/) on [pub.dev](https://pub.dev/packages/matrix), XMPP lacked dedicated packages. The available XMPP packages were either discontinued or did not offer the required features for my needs.
+
+The application I aimed to develop needed to interact with the server for various functionalities, including handling messages, presence updates, and user information updates. Without XMPP, I would have to manage multiple sockets and custom implementations for each type of communication, which could be complex and error-prone. XMPP simplifies this process by providing a single protocol that supports all these functionalities efficiently.
+
+For example, XMPP can handle real-time messaging with features similar to those in popular chat applications like **WhatsApp**. It also supports presence information, enabling applications to track user statuses such as online, offline, or away, akin to functionalities seen in platforms like Slack. Additionally, XMPP can manage user information updates and notifications, which is crucial for applications with dynamic user interactions.
+
+Whixp addresses these challenges by offering a comprehensive solution that integrates XMPP's capabilities into Dart and Flutter environments, streamlining the development process and enhancing communication efficiency.
+
+## Whixp features
+
+Below are some of the key functionalities that the Whixp package offers and manages seamlessly:
+
+- [DirectTLS](https://xmpp.org/extensions/xep-0368.html#glossary) handshake
+- [StartTLS](https://en.wikipedia.org/wiki/Opportunistic_TLS), but when the proper server certificates are provided
+- Authentication with [SASL](https://datatracker.ietf.org/doc/html/rfc4422#:~:text=Introduction%20The%20Simple%20Authentication%20and,oriented%20protocols%20via%20replaceable%20mechanisms.) Scram methods (available encryption methods can be found under the Authentication section)
+- Handling several Stream Features (such as bind, mechanisms, session, etc.)
+- Proper Stream Management (SM)
+- Error handling
+- Handling all stanza types (Message, Presence and IQ)
+
+These features can be complex to implement but are essential for delivering a seamless and reliable user experience.
+
+It's time to dive into another critical aspect: the fundamentals of XMPP and how Whixp addresses these components. We'll also take this opportunity to look at some code examples.
