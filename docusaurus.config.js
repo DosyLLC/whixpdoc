@@ -68,7 +68,7 @@ const config = {
         docs: {
           editLocalizedFiles: true,
           sidebarPath: require.resolve("./sidebars.js"),
-          editUrl: "https://github.com/DosyLLC/whixpdoc",
+          editUrl: "https://github.com/DosyLLC/whixpdoc/tree/main",
         },
         theme: {
           customCss: require.resolve("./src/scss/main.scss"),
