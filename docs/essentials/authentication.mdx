@@ -4,11 +4,11 @@ sidebar_position: 10
 version: 1
 ---
 
-In XMPP protocol, various mechanisms are employed to authenticate clients, including traditional username/password methods, token-based authentication, and more secure techniques like [SASL (Simple Authentication and Security Layer)](https://en.wikipedia.org/wiki/Simple_Authentication_and_Security_Layer). The choice of authentication mechamism can depend on the specific security requirements and the deployment environment of the XMPP server. This section delives into the authentication methods in XMPP, exploring their functionality, benefits and the usage of several authentication methods in Whixp package.
+In XMPP protocol, various mechanisms are employed to authenticate clients, including traditional username/password methods, token-based authentication, and more secure techniques like [SASL (Simple Authentication and Security Layer)](https://en.wikipedia.org/wiki/Simple_Authentication_and_Security_Layer). The choice of authentication mechanism can depend on the specific security requirements and the deployment environment of the XMPP server. This section delves into the authentication methods in XMPP, exploring their functionality, benefits, and the usage of several authentication methods in the Whixp package.
 
 ## ANONYMOUS
 
-[Anonymous](https://xmpp.org/extensions/xep-0175.html) authentication is one of the available mechanisms within XMPP that allows users to connect to an XMPP server without providing a traditional username or password. This method typically used in scenarious where temporary, non-registered access is desired, such as guest or trial access to a service, public chatrooms, etc.
+[Anonymous](https://xmpp.org/extensions/xep-0175.html) authentication is one of the available mechanisms within XMPP that allows users to connect to an XMPP server without providing a traditional username or password. This method is typically used in scenarios where temporary, non-registered access is desired, such as guest or trial access to a service, public chatrooms, or anonymous messaging systems.
 
 ```dart
 final whixp = Whixp(
@@ -16,7 +16,7 @@ final whixp = Whixp(
     disableStartTLS: true,
     internalDatabasePath: 'anonymous',
   );
-  
+
 whixp.connect();
 ```
 
@@ -55,7 +55,7 @@ whixp.connect();
 Keep in mind that to connect using either of these two methods (`PLAIN` or `ANONYMOUS`), it is essential to correctly configure your server’s configuration file. Proper configuration ensures that the server allows or prioritizes the desired authentication methods and aligns with your security and usability requirements.
 :::
 
-When you try to connect to the server as an `PLAIN` credentials, the log will appear as follows:
+When you try to connect to the server using `PLAIN` credentials, the log will appear as follows:
 
 ```console
 [Whixp] SEND: <stream:stream to='localhost' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client' xml:lang='en' version='1.0'>
@@ -73,9 +73,41 @@ Whixp supports various SHA methods, including **SASL-SHA-1**, **SASL-SHA-256**, 
 
 ### Priority list of authentication mechanisms
 
-1. SASL-SHA-1
-2. SASL-SHA-512
-3. SASL-SHA-384
-4. SASL-SHA-256
-5. PLAIN
-6. ANONYMOUS
+Whixp attempts authentication methods in the following order of priority (from most secure to least secure):
+
+1. **SASL-SHA-1** (SCRAM-SHA-1): Uses the SHA-1 hashing algorithm with salt-based challenge-response authentication. This is a secure method that doesn't transmit passwords in plaintext.
+2. **SASL-SHA-512** (SCRAM-SHA-512): Uses the SHA-512 hashing algorithm, providing stronger security than SHA-1. This is the most secure SHA-based method supported.
+3. **SASL-SHA-384** (SCRAM-SHA-384): Uses the SHA-384 hashing algorithm, providing a balance between security and performance.
+4. **SASL-SHA-256** (SCRAM-SHA-256): Uses the SHA-256 hashing algorithm, providing good security with better performance than SHA-512.
+5. **PLAIN**: Simple username/password authentication. Only secure when used over TLS-encrypted connections.
+6. **ANONYMOUS**: Allows connection without credentials. Requires server configuration to allow anonymous access.
+
+Whixp automatically tries each method in order until one succeeds. If all methods fail, the connection will fail with an authentication error.
+
+## SCRAM Authentication Details
+
+SCRAM (Salted Challenge Response Authentication Mechanism) is a family of authentication methods that provide secure password-based authentication. The SCRAM methods supported by Whixp include:
+
+- **SCRAM-SHA-1**: Uses HMAC-SHA-1 for hashing
+- **SCRAM-SHA-256**: Uses HMAC-SHA-256 for hashing
+- **SCRAM-SHA-384**: Uses HMAC-SHA-384 for hashing
+- **SCRAM-SHA-512**: Uses HMAC-SHA-512 for hashing
+
+All SCRAM methods follow a challenge-response protocol:
+
+1. The client sends an initial authentication request
+2. The server responds with a challenge containing a salt and iteration count
+3. The client computes a response using the password, salt, and iteration count
+4. The server verifies the response and sends a success message
+
+This process ensures that passwords are never transmitted in plaintext, even if the connection is intercepted.
+
+## Security Considerations
+
+When choosing an authentication method, consider the following security aspects:
+
+- **Always use TLS**: Even with SCRAM methods, it's recommended to use TLS encryption to protect against man-in-the-middle attacks.
+- **Prefer SCRAM over PLAIN**: SCRAM methods provide better security than PLAIN authentication, even over TLS.
+- **Use stronger hash algorithms**: SHA-512 and SHA-256 are generally preferred over SHA-1 for new deployments.
+- **Server configuration**: Ensure your XMPP server is configured to support the authentication methods you want to use.
+- **Anonymous access**: Only enable anonymous authentication in controlled environments where security is not a primary concern.
