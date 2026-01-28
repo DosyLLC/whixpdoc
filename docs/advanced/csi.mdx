@@ -1,0 +1,146 @@
+---
+title: Client State Indication (CSI)
+version: 1
+---
+
+Client State Indication (CSI), defined in [XEP-0352](https://xmpp.org/extensions/xep-0352.html), allows clients to indicate to the server when the user is actively using the application versus when they are inactive. This enables the server to optimize traffic delivery, saving bandwidth and resources.
+
+## Overview
+
+CSI helps optimize communication by:
+
+- Reducing server load when the user is inactive
+- Saving bandwidth by deferring non-critical messages
+- Improving battery life on mobile devices
+- Allowing servers to prioritize message delivery
+
+## Active State
+
+When the user is actively interacting with the application, send an active indication:
+
+```dart
+CSI.sendActive(whixp.transport);
+```
+
+This tells the server that the user is actively using the client and should receive all messages immediately.
+
+## Inactive State
+
+When the user is not actively using the application (e.g., the app is in the background), send an inactive indication:
+
+```dart
+CSI.sendInactive(whixp.transport);
+```
+
+This tells the server that the user is inactive and non-critical messages can be deferred or batched.
+
+## Usage Example
+
+Here's a practical example of using CSI in a Flutter application:
+
+```dart
+import 'package:flutter/material.dart';
+
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
+  late Whixp whixp;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    whixp = Whixp(
+      jabberID: 'user@example.com',
+      password: 'password',
+      internalDatabasePath: 'whixp',
+    );
+
+    whixp.addEventHandler('streamNegotiated', (_) {
+      // Send active when app becomes active
+      CSI.sendActive(whixp.transport);
+    });
+
+    whixp.connect();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    whixp.disconnect();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App is in foreground - send active
+        CSI.sendActive(whixp.transport);
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App is in background - send inactive
+        CSI.sendInactive(whixp.transport);
+        break;
+      case AppLifecycleState.detached:
+        // App is closing
+        break;
+    }
+  }
+}
+```
+
+## When to Use CSI
+
+### Send Active When:
+
+- User opens the application
+- User interacts with the application (typing, scrolling, etc.)
+- Application comes to foreground
+- User is actively viewing messages
+
+### Send Inactive When:
+
+- Application goes to background
+- User hasn't interacted for a period of time
+- Application is minimized
+- Screen is locked (on mobile devices)
+
+## Complete Example
+
+```dart
+void main() {
+  final whixp = Whixp(
+    jabberID: 'user@example.com',
+    password: 'password',
+    internalDatabasePath: 'whixp',
+  );
+
+  whixp.addEventHandler('streamNegotiated', (_) {
+    // Initially active
+    CSI.sendActive(whixp.transport);
+
+    // Simulate user going inactive after 5 minutes
+    Timer(Duration(minutes: 5), () {
+      CSI.sendInactive(whixp.transport);
+    });
+  });
+
+  whixp.connect();
+}
+```
+
+## Best Practices
+
+1. **Send active on connection**: Always send active when the stream is negotiated and the user is present
+2. **Monitor app lifecycle**: Use platform-specific lifecycle events to manage CSI state
+3. **Send inactive on background**: Always send inactive when the app goes to background
+4. **Don't overuse**: Only change state when there's a meaningful change in user activity
+5. **Handle reconnection**: Send active state after reconnection if the user is still present
+
+CSI is particularly useful for mobile applications where battery life and bandwidth are important considerations.
