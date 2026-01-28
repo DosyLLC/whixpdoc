@@ -2,11 +2,11 @@ import { themes } from "prism-react-renderer";
 
 const config = {
   title: "Whixp",
-  url: "https://whixp.dosy.app",
-  baseUrl: "/",
+  url: "https://vsevex.me",
+  baseUrl: "/whixpdoc/",
   favicon: "img/favicon.ico",
-  organizationName: "dosy",
-  projectName: "whixp",
+  organizationName: "DosyLLC",
+  projectName: "whixpdoc",
   plugins: ["docusaurus-plugin-sass"],
   trailingSlash: false,
   i18n: {
