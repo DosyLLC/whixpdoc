@@ -48,7 +48,7 @@ The result of the sent stanza can be shown in the outputs log:
 
 ## Detailed presence
 
-In Whixp, you can send more detailed presence messages by specifying various parameters such as the recipient, availability status, nickname, custom status messages, and priority. This flexibility allows you tailor your prseence notifications according to your needs.
+In Whixp, you can send more detailed presence messages by specifying various parameters such as the recipient, availability status, nickname, custom status messages, and priority. This flexibility allows you to tailor your presence notifications according to your needs.
 
 ```dart
 whixp.sendPresence(
@@ -82,6 +82,56 @@ whixp.addEventHandler<Presence>('presence', (presence) {
     log('Presence from: $from');
   });
 ```
+
+## Presence Types
+
+XMPP defines several presence types that indicate the nature of the presence update:
+
+- **Available**: The default presence type, indicating the user is online and available for communication.
+- **Unavailable**: Indicates the user is offline or not available. This is typically sent when disconnecting.
+- **Subscribe**: A request to subscribe to a user's presence updates.
+- **Subscribed**: Confirmation that a subscription request has been accepted.
+- **Unsubscribe**: A request to unsubscribe from a user's presence updates.
+- **Unsubscribed**: Confirmation that an unsubscribe request has been processed.
+- **Probe**: A request to check the current presence status of a user.
+- **Error**: Indicates an error occurred while processing a presence stanza.
+
+You can specify the presence type when sending presence:
+
+```dart
+// Send unavailable presence when going offline
+whixp.sendPresence(type: 'unavailable');
+
+// Send available presence (default)
+whixp.sendPresence();
+```
+
+## Presence Show Values
+
+The `show` attribute provides more granular information about availability:
+
+- **`away`**: The user is away from their device but still online.
+- **`chat`**: The user is available and actively engaged in chat.
+- **`dnd`**: Do Not Disturb - the user is online but doesn't want to be interrupted.
+- **`xa`**: Extended Away - the user is away for an extended period.
+
+```dart
+whixp.sendPresence(show: 'dnd', status: 'In a meeting');
+```
+
+## Priority Management
+
+Priority values range from -128 to 127, with higher values indicating higher priority. When a user has multiple resources (connections), the server uses priority to determine which resource should receive messages:
+
+```dart
+// Desktop connection with high priority
+whixp.sendPresence(priority: 10);
+
+// Mobile connection with lower priority
+whixp.sendPresence(priority: 5);
+```
+
+Messages are typically routed to the resource with the highest priority. If multiple resources have the same priority, the server may use other criteria (such as most recent activity) to determine message routing.
 
 :::info
 In upcoming updates, Whixp will enhance its handling of presence information by automatically managing user availability based on roster information and handling necessary roster updates according to the presence types received. For now, however, you will need to manage this information manually within your application logic.
