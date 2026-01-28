@@ -22,7 +22,7 @@ This creates a `JabberID` instance with the given Jabber address. The `JabberID`
 
 **Internationalized Domain Name (IDNA)** is the specification that allows the use of non-ASCII characters in domain names. When preparing a JID, any domain part containing non-ASCII characters should be converted to its Punycode representation to ensure seamless communication.
 
-### String preperation
+### String preparation
 
 String preparation involves several steps to ensure that the JID conforms to XMPP standards:
 
@@ -33,16 +33,13 @@ String preparation involves several steps to ensure that the JID conforms to XMP
 In the codebase of Whixp, there is a comprehensive list of characters that are explicitly prohibited in the domain part of a JID. Here's a breakdown of the types of characters included:
 
 1. **Control characters**:
-
    - ASCII characters ranging from `\x00` to `\x1F` are control characters that are not visible and serve special functions (e.g., line breaks, tabs). These characters should never appear in a domain name as they can interfere with proper parsing and communication.
    - The DEL character (`\x7F`) is also excluded for similar reasons.
 
 2. **Whitespace characters**:
-
    - Specific whitespace characters such as tabs (`\t`), new lines (`\n`), and carriage returns (`\r`) are forbidden in the domain part of a JID. The presence of these characters can cause issues in processing and interpreting the JID.
 
 3. **Special Characters**:
-
    - The string includes various special characters such as spaces, punctuation marks, and symbols: `!"#$%&'()\*+,-./:;<=>?@[\]^\_{|}~`
    - These characters are typically reserved for specific syntactical functions in various contexts and may lead to ambiguities if included in a domain name.
 
@@ -54,4 +51,37 @@ The following profiles are recognized within the string preparation process:
 - saslprep
 - nodeprep-prohibit
 
-These preperations map characters and disallow character categories according to [RFC 3454](https://datatracker.ietf.org/doc/html/rfc3454).
+These preparations map characters and disallow character categories according to [RFC 3454](https://datatracker.ietf.org/doc/html/rfc3454).
+
+## JID Components
+
+A JID consists of three main components:
+
+1. **Node**: The username or identifier before the "@" symbol (e.g., "vsevolod" in "vsevolod@dosy.app")
+2. **Domain**: The server domain after the "@" symbol (e.g., "dosy.app")
+3. **Resource**: An optional identifier after the "/" symbol that distinguishes multiple connections from the same user (e.g., "desktop" in "vsevolod@dosy.app/desktop")
+
+### Accessing JID Components
+
+The `JabberID` class provides convenient getters to access these components:
+
+```dart
+final jid = JabberID('vsevolod@dosy.app/desktop');
+
+print(jid.username);  // "vsevolod"
+print(jid.domain);     // "dosy.app"
+print(jid.resource);   // "desktop"
+print(jid.bare);       // "vsevolod@dosy.app" (without resource)
+print(jid.toString()); // "vsevolod@dosy.app/desktop" (full JID)
+```
+
+### Bare JID vs Full JID
+
+- **Bare JID**: Contains only the node and domain (e.g., "vsevolod@dosy.app"). Used to identify a user account.
+- **Full JID**: Includes the resource identifier (e.g., "vsevolod@dosy.app/desktop"). Used to identify a specific connection or session.
+
+When sending messages or presence updates, you typically use bare JIDs to address a user, while full JIDs are used to identify specific connections or resources.
+
+## JID Validation
+
+Whixp automatically validates and normalizes JIDs according to XMPP specifications. Invalid characters are removed or transformed, and the JID is prepared according to the appropriate stringprep profiles. This ensures compatibility with XMPP servers and other clients.
