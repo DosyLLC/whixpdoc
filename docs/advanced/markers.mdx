@@ -1,0 +1,158 @@
+---
+title: Chat Markers
+version: 1
+---
+
+Chat Markers, defined in [XEP-0333](https://xmpp.org/extensions/xep-0333.html), provide a way to indicate when messages have been displayed or received. This enables read receipts and delivery notifications, similar to features found in modern messaging applications.
+
+## Overview
+
+Chat Markers enable:
+
+- Marking messages as displayed (read receipts)
+- Indicating when messages are received
+- Tracking message delivery status
+- Building modern messaging UI features
+
+## Making Messages Markable
+
+To request a read receipt, mark a message as markable:
+
+```dart
+final message = Message(body: 'Hello!')
+  ..to = JabberID('user@example.com');
+
+// Make the message markable
+final markableMessage = message.makeMarkable;
+
+whixp.send(markableMessage);
+```
+
+This adds a `<markable>` element to the message, indicating that the sender wants to know when the message is displayed.
+
+## Sending Displayed Marker
+
+When a markable message is displayed to the user, send a displayed marker:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+  if (message == null) return;
+
+  // Check if message is markable
+  final markable = message.get<MarkerStanza>();
+  if (markable.isNotEmpty) {
+    // Message is markable - send displayed marker when shown to user
+    final displayedMessage = Message()
+      ..to = message.from
+      ..makeDisplayed(message.id ?? '');
+
+    whixp.send(displayedMessage);
+  }
+});
+```
+
+## Checking if Message is Marked
+
+Check if a received message has been marked as displayed:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+  if (message == null) return;
+
+  // Check if this is a displayed marker
+  final displayed = message.get<DisplayedStanza>();
+  if (displayed.isNotEmpty) {
+    final marker = displayed.first;
+    print('Message ${marker.id} was displayed');
+    // Update UI to show read receipt
+  }
+
+  // Check if message is markable
+  final markable = message.get<MarkerStanza>();
+  if (markable.isNotEmpty) {
+    print('Message is markable');
+  }
+});
+```
+
+## Complete Example
+
+Here's a complete example of implementing chat markers:
+
+```dart
+void main() {
+  final whixp = Whixp(
+    jabberID: 'user@example.com',
+    password: 'password',
+    internalDatabasePath: 'whixp',
+  );
+
+  // Handle incoming messages
+  whixp.addEventHandler<Message>('message', (message) {
+    if (message == null) return;
+
+    // Check if message is markable
+    final markable = message.get<MarkerStanza>();
+    if (markable.isNotEmpty) {
+      // Display message to user (in your UI)
+      displayMessage(message);
+
+      // Send displayed marker
+      if (message.id != null) {
+        final displayed = Message()
+          ..to = message.from
+          ..makeDisplayed(message.id!);
+
+        whixp.send(displayed);
+      }
+    }
+
+    // Check for displayed markers (read receipts)
+    final displayed = message.get<DisplayedStanza>();
+    if (displayed.isNotEmpty) {
+      final marker = displayed.first;
+      // Update UI to show message as read
+      updateMessageStatus(marker.id, 'read');
+    }
+  });
+
+  whixp.addEventHandler('streamNegotiated', (_) {
+    // Send a markable message
+    final message = Message(body: 'Hello, this message requests a read receipt!')
+      ..to = JabberID('recipient@example.com');
+
+    whixp.send(message.makeMarkable);
+  });
+
+  whixp.connect();
+}
+
+void displayMessage(Message message) {
+  // Display message in your UI
+  print('Displaying: ${message.body}');
+}
+
+void updateMessageStatus(String messageId, String status) {
+  // Update message status in your UI
+  print('Message $messageId is now $status');
+}
+```
+
+## Marker Types
+
+Chat Markers support different marker types:
+
+- **`markable`**: Indicates a message requests a read receipt
+- **`displayed`**: Indicates a message has been displayed to the user
+- **`received`**: Indicates a message has been received (optional, less common)
+- **`acknowledged`**: Indicates a message has been acknowledged (optional, less common)
+
+## Best Practices
+
+1. **Only mark when displayed**: Only send displayed markers when the message is actually shown to the user
+2. **Respect user preferences**: Allow users to disable read receipts if desired
+3. **Handle missing IDs**: Always check if message IDs exist before using them
+4. **Update UI accordingly**: Update your UI to reflect read receipt status
+5. **Don't spam markers**: Only send markers for markable messages
+
+Chat Markers are essential for building modern messaging applications with read receipts and delivery status indicators.
