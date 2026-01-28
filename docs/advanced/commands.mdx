@@ -1,0 +1,239 @@
+---
+title: Ad-Hoc Commands
+version: 1
+---
+
+Ad-Hoc Commands, defined in [XEP-0050](https://xmpp.org/extensions/xep-0050.html), provide a generic workflow mechanism for interacting with XMPP applications. They allow clients to execute server-side commands and processes through a standardized interface.
+
+## Overview
+
+Ad-Hoc Commands enable:
+
+- Executing server-side commands
+- Interactive command workflows
+- Multi-step command processes
+- Command discovery and execution
+
+## Discovering Commands
+
+First, discover available commands using Service Discovery:
+
+```dart
+final items = DiscoItems();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('server@example.com')
+  ..payload = items;
+
+final result = await iq.send(whixp.transport);
+
+if (result.payload is DiscoItems) {
+  final discoItems = result.payload as DiscoItems;
+
+  for (final item in discoItems.items) {
+    if (item.node != null) {
+      print('Command: ${item.name} (node: ${item.node})');
+    }
+  }
+}
+```
+
+## Executing Commands
+
+Execute a command using `AdHocCommands.sendCommand`:
+
+```dart
+final result = await AdHocCommands.sendCommand(
+  whixp.transport,
+  JabberID('server@example.com'),
+  'command-node',
+  callback: (iq) {
+    if (iq.payload is Command) {
+      final command = iq.payload as Command;
+      print('Command status: ${command.status}');
+
+      if (command.status == 'executing') {
+        // Command requires more input - handle form or next step
+        handleCommandForm(command);
+      } else if (command.status == 'completed') {
+        // Command completed successfully
+        print('Command completed');
+      }
+    }
+  },
+  failureCallback: (error) {
+    print('Command failed: ${error.reason}');
+  },
+);
+```
+
+## Handling Command Forms
+
+Many commands require form input. Handle forms in the command response:
+
+```dart
+void handleCommandForm(Command command) {
+  if (command.actions != null) {
+    // Command has available actions
+    print('Available actions: ${command.actions}');
+  }
+
+  if (command.form != null) {
+    // Command requires form input
+    final form = command.form!;
+
+    // Fill in form fields
+    for (final field in form.fields) {
+      if (field.variable == 'username') {
+        field.values = ['myusername'];
+      } else if (field.variable == 'password') {
+        field.values = ['mypassword'];
+      }
+    }
+
+    // Submit form
+    form.type = FormType.submit;
+
+    // Continue command execution with form
+    AdHocCommands.sendCommand(
+      whixp.transport,
+      JabberID('server@example.com'),
+      'command-node',
+      payloads: [form],
+      action: 'execute', // or 'complete', 'next', 'prev', 'cancel'
+      sessionID: command.sessionID,
+    );
+  }
+}
+```
+
+## Command Workflow
+
+Ad-Hoc commands can have multiple steps. Handle the workflow:
+
+```dart
+Future<void> executeCommand(String node) async {
+  String? sessionID;
+  String action = 'execute';
+
+  do {
+    final result = await AdHocCommands.sendCommand(
+      whixp.transport,
+      JabberID('server@example.com'),
+      node,
+      sessionID: sessionID,
+      action: action,
+    );
+
+    if (result.payload is Command) {
+      final command = result.payload as Command;
+      sessionID = command.sessionID;
+
+      switch (command.status) {
+        case 'executing':
+          // Command needs more input
+          if (command.form != null) {
+            // Fill and submit form
+            action = 'complete';
+          } else {
+            // Continue to next step
+            action = 'next';
+          }
+          break;
+        case 'completed':
+          // Command finished
+          print('Command completed successfully');
+          return;
+        case 'canceled':
+          // Command was canceled
+          print('Command was canceled');
+          return;
+      }
+    }
+  } while (sessionID != null);
+}
+```
+
+## Starting a Command
+
+Use `startCommand` to initiate a command with a session:
+
+```dart
+final session = <String, dynamic>{
+  'payload': [], // Optional initial payloads
+};
+
+final result = await AdHocCommands.startCommand(
+  whixp.transport,
+  JabberID('server@example.com'),
+  'command-node',
+  session,
+);
+```
+
+## Command Actions
+
+Commands support various actions:
+
+- **`execute`**: Start or continue command execution
+- **`cancel`**: Cancel the command
+- **`prev`**: Go to previous step
+- **`next`**: Go to next step
+- **`complete`**: Complete the command with form data
+
+## Complete Example
+
+Here's a complete example of executing an ad-hoc command:
+
+```dart
+Future<void> runServerCommand() async {
+  // Discover available commands
+  final items = DiscoItems();
+  final discoverIq = IQ(generateID: true)
+    ..type = 'get'
+    ..to = JabberID('server@example.com')
+    ..payload = items;
+
+  final discoverResult = await discoverIq.send(whixp.transport);
+
+  if (discoverResult.payload is DiscoItems) {
+    final discoItems = discoverResult.payload as DiscoItems;
+
+    // Find a command node
+    final commandNode = discoItems.items
+        .firstWhere((item) => item.node == 'my-command-node');
+
+    if (commandNode != null) {
+      // Execute the command
+      await AdHocCommands.sendCommand(
+        whixp.transport,
+        JabberID('server@example.com'),
+        commandNode.node!,
+        callback: (iq) {
+          if (iq.payload is Command) {
+            final command = iq.payload as Command;
+            print('Command executed: ${command.status}');
+
+            if (command.note != null) {
+              print('Note: ${command.note!.text}');
+            }
+          }
+        },
+        failureCallback: (error) {
+          print('Command error: ${error.reason}');
+        },
+      );
+    }
+  }
+}
+```
+
+## Best Practices
+
+1. **Discover first**: Always discover available commands before executing
+2. **Handle forms**: Properly handle command forms and user input
+3. **Manage sessions**: Keep track of command sessions for multi-step commands
+4. **Handle errors**: Always provide error callbacks
+5. **Respect status**: Check command status and handle accordingly
+
+Ad-Hoc Commands provide a powerful way to interact with XMPP servers and execute administrative or configuration tasks.
