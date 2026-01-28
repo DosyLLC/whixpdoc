@@ -34,7 +34,7 @@ whixp.addEventHandler<TransportState>('state', (state) {
     } else if (state == TransportState.disconnected) {
       log('Disconnected');
     } else if (state == TransportState.connectionFailure) {
-      log('Connection failure occured');
+      log('Connection failure occurred');
     } else if (state == TransportState.reconnecting) {
       log('Reconnecting');
     }
@@ -53,7 +53,7 @@ whixp.addEventHandler('streamNegotiated', (_) {
 
 ### `streamError`
 
-A stream error occurs when there is a problem with the communication between the client and the XMPP server. This could happen for various reasons, such as protocol violations, authentication failures, or server-related issues. To handle these errors effectively, you can use a this handler and write your own logic to what to do in this case.
+A stream error occurs when there is a problem with the communication between the client and the XMPP server. This could happen for various reasons, such as protocol violations, authentication failures, or server-related issues. To handle these errors effectively, you can use this handler and write your own logic for what to do in this case.
 
 ```dart
 whixp.addEventHandler<StreamError>('streamError', (error) {
@@ -74,7 +74,7 @@ whixp.addEventHandler('startSession', (_) {
 
 ### `endSession`
 
-Handler attached to this event will be proceed when an active XMPP session is terminated.
+Handler attached to this event will be processed when an active XMPP session is terminated.
 
 ```dart
 whixp.addEventHandler('endSession', (_) {
