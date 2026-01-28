@@ -1,0 +1,226 @@
+---
+title: Message Archive Management (MAM)
+version: 1
+---
+
+Message Archive Management (MAM), defined in [XEP-0313](https://xmpp.org/extensions/xep-0313.html), allows clients to query and retrieve archived messages from the server. This enables features like message history, search, and synchronization across devices.
+
+## Overview
+
+MAM provides a standardized way to:
+
+- Query archived messages based on various criteria (time range, JID, etc.)
+- Retrieve message history
+- Synchronize messages across multiple devices
+- Search through past conversations
+
+## Querying the Archive
+
+The `MAM.queryArchive` method allows you to query archived messages:
+
+```dart
+final mam = MAM();
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  filter: mam.createFilter(
+    start: '2024-01-01T00:00:00Z',
+    end: '2024-01-31T23:59:59Z',
+    wth: 'user@example.com', // 'with' - filter by JID
+  ),
+  pagination: RSMSet(max: 50),
+);
+```
+
+## Creating Filters
+
+Filters allow you to narrow down the query results:
+
+```dart
+final mam = MAM();
+
+// Filter by time range
+final filter1 = mam.createFilter(
+  start: '2024-01-01T00:00:00Z',
+  end: '2024-01-31T23:59:59Z',
+);
+
+// Filter by JID
+final filter2 = mam.createFilter(
+  wth: 'user@example.com',
+);
+
+// Filter by message IDs
+final filter3 = mam.createFilter(
+  ids: ['msg-id-1', 'msg-id-2'],
+);
+
+// Filter with multiple criteria
+final filter4 = mam.createFilter(
+  start: '2024-01-01T00:00:00Z',
+  wth: 'user@example.com',
+  includeGroupchats: true,
+);
+```
+
+### Filter Parameters
+
+- **`start`**: ISO 8601 timestamp for the start of the time range
+- **`end`**: ISO 8601 timestamp for the end of the time range
+- **`wth`**: JID to filter messages (corresponds to 'with' - messages to/from this JID)
+- **`beforeID`**: Message ID to start querying before
+- **`afterID`**: Message ID to start querying after
+- **`ids`**: List of specific message IDs to retrieve
+- **`includeGroupchats`**: Whether to include groupchat messages
+
+## Pagination
+
+Use Result Set Management (RSM) for pagination:
+
+```dart
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: RSMSet(
+    max: 25, // Number of results per page
+    after: 'last-message-id', // Start after this message ID
+  ),
+);
+```
+
+## Processing Results
+
+MAM results are returned as messages containing `MAMResult` payloads:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+  if (message == null) return;
+
+  final results = message.get<MAMResult>();
+  if (results.isEmpty) return;
+
+  for (final result in results) {
+    final forwarded = result.forwarded;
+    if (forwarded?.actual is Message) {
+      final archivedMessage = forwarded!.actual as Message;
+      print('From: ${archivedMessage.from}');
+      print('To: ${archivedMessage.to}');
+      print('Body: ${archivedMessage.body}');
+      print('Timestamp: ${forwarded.delay?.stamp}');
+    }
+  }
+});
+```
+
+## Complete Example
+
+Here's a complete example of querying and processing archived messages:
+
+```dart
+Future<void> queryMessages() async {
+  final mam = MAM();
+
+  final result = await MAM.queryArchive(
+    whixp.transport,
+    filter: mam.createFilter(
+      wth: 'user@example.com',
+    ),
+    pagination: RSMSet(max: 25),
+    flipPage: true, // Reverse order (newest first)
+    failureCallback: (error) {
+      print('MAM query failed: ${error.reason}');
+    },
+  );
+
+  if (result.type == 'error' || result.error != null) {
+    print('Error querying archive');
+    return;
+  }
+
+  final fin = result.payload is MAMFin
+    ? result.payload as MAMFin
+    : null;
+
+  if (fin != null) {
+    print('Complete: ${fin.complete}');
+    print('First: ${fin.first}');
+    print('Last: ${fin.last}');
+  }
+}
+
+// Handle incoming MAM results
+whixp.addEventHandler<Message>('message', (message) {
+  final results = message?.get<MAMResult>();
+  if (results?.isEmpty ?? true) return;
+
+  for (final result in results!) {
+    final forwarded = result.forwarded;
+    final actual = forwarded?.actual;
+
+    if (actual is Message) {
+      print('Archived message: ${actual.body}');
+      print('From: ${actual.from}');
+      print('Timestamp: ${forwarded?.delay?.stamp}');
+    }
+  }
+});
+```
+
+## Pagination Example
+
+To retrieve all messages using pagination:
+
+```dart
+Future<void> getAllMessages(String? lastItem) async {
+  final mam = MAM();
+
+  final result = await MAM.queryArchive(
+    whixp.transport,
+    filter: mam.createFilter(
+      wth: 'user@example.com',
+    ),
+    pagination: RSMSet(
+      max: 25,
+      before: lastItem ?? '',
+    ),
+    flipPage: true,
+  );
+
+  final fin = result.payload is MAMFin
+    ? result.payload as MAMFin
+    : null;
+
+  if (fin == null || fin.complete) {
+    return; // All messages retrieved
+  }
+
+  final nextItem = fin.last?.lastItem;
+  if (nextItem != null) {
+    // Continue pagination
+    await getAllMessages(nextItem);
+  }
+}
+```
+
+## Retrieving Metadata
+
+You can retrieve metadata about the archive:
+
+```dart
+final result = await MAM.retrieveMetadata(
+  transport: whixp.transport,
+  callback: (iq) {
+    // Process metadata
+    print('Metadata retrieved');
+  },
+);
+```
+
+## Best Practices
+
+1. **Use pagination**: Always use RSM pagination for large result sets to avoid overwhelming the client
+2. **Filter appropriately**: Use filters to narrow down results and reduce server load
+3. **Handle errors**: Always provide error callbacks for failed queries
+4. **Process asynchronously**: MAM queries can return many messages - process them asynchronously
+5. **Cache results**: Consider caching retrieved messages locally to reduce server queries
+
+MAM is essential for building modern messaging applications with message history and synchronization capabilities.
