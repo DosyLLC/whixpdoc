@@ -1,11 +1,11 @@
 ---
-title: Connection establishement
+title: Connection Establishment
 version: 1
 ---
 
 After completing the necessary configuration, it's time to establish an initial connection to the XMPP server.
 
-Connecting to the server with Whixp is straightforward. You only need to call one method to make the connection:
+Connecting to the server with Whixp is straightforward. You only need to call one method to make the connection. The `connect()` method initiates the connection process, which includes DNS SRV lookup (if no host is specified), socket establishment, stream negotiation, authentication, and feature processing.
 
 ```dart
 final whixp = Whixp(
@@ -49,7 +49,100 @@ When there is an error with connection, the Whixp debug output will be similar t
 ```plaintext
 [Whixp] Resetting reconnection policy
 [Whixp] Trying to connect to localhost on port 5222
-[Whixp] Failure occured. Starting random backoff with 5s
+[Whixp] Failure occurred. Starting random backoff with 5s
 [Whixp] Timer elapsed. Waiting for lock...
 [Whixp] Reconnecting...
 ```
+
+## Connection States
+
+Whixp provides several connection states that you can monitor through event handlers. The main states are:
+
+- **`TransportState.connecting`**: The client is attempting to establish a connection to the server.
+- **`TransportState.connected`**: The socket connection has been successfully established.
+- **`TransportState.disconnected`**: The connection has been closed or terminated.
+- **`TransportState.connectionFailure`**: A connection attempt has failed.
+- **`TransportState.reconnecting`**: The client is attempting to reconnect after a disconnection.
+
+You can listen to these state changes using the `state` event handler:
+
+```dart
+whixp.addEventHandler<TransportState>('state', (state) {
+  switch (state) {
+    case TransportState.connecting:
+      print('Connecting to server...');
+      break;
+    case TransportState.connected:
+      print('Connected successfully!');
+      break;
+    case TransportState.disconnected:
+      print('Disconnected from server');
+      break;
+    case TransportState.connectionFailure:
+      print('Connection failed');
+      break;
+    case TransportState.reconnecting:
+      print('Reconnecting...');
+      break;
+  }
+});
+```
+
+## Disconnecting
+
+To gracefully disconnect from the XMPP server, you can call the `disconnect()` method:
+
+```dart
+await whixp.disconnect();
+```
+
+This method will:
+
+- Send an unavailable presence (if configured)
+- Close the XML stream properly
+- Clean up resources
+- End the session
+
+## Connection Timeout
+
+You can configure the connection timeout when creating a Whixp instance. The default timeout is 2000 milliseconds (2 seconds). This timeout determines how long the client will wait when establishing the initial socket connection:
+
+```dart
+final whixp = Whixp(
+  jabberID: 'vsevolod@localhost',
+  password: 'passwd',
+  internalDatabasePath: 'whixp',
+  connectionTimeout: 5000, // 5 seconds
+);
+```
+
+## Keep-Alive (Ping)
+
+Whixp supports automatic keep-alive functionality to maintain the connection and detect network issues. When enabled, the client periodically sends whitespace characters over the connection to keep it alive:
+
+```dart
+final whixp = Whixp(
+  jabberID: 'vsevolod@localhost',
+  password: 'passwd',
+  internalDatabasePath: 'whixp',
+  pingKeepAlive: true,
+  pingKeepAliveInterval: 300, // seconds, default is 300
+);
+```
+
+The keep-alive interval specifies how often (in seconds) the ping signal should be sent. This helps prevent the connection from timing out due to inactivity.
+
+## IPv6 Support
+
+Whixp supports IPv6 connections. To enable IPv6, set the `useIPv6` parameter to `true`:
+
+```dart
+final whixp = Whixp(
+  jabberID: 'vsevolod@localhost',
+  password: 'passwd',
+  internalDatabasePath: 'whixp',
+  useIPv6: true,
+);
+```
+
+When enabled, Whixp will attempt to use IPv6 addresses when available, falling back to IPv4 if IPv6 is not supported or available.
