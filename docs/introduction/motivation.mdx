@@ -12,18 +12,48 @@ For example, XMPP can handle real-time messaging with features similar to those 
 
 Whixp addresses these challenges by offering a comprehensive solution that integrates XMPP's capabilities into Dart and Flutter environments, streamlining the development process and enhancing communication efficiency.
 
-## Whixp features
+## Whixp Features
 
 Below are some of the key functionalities that the Whixp package offers and manages seamlessly:
 
-- [DirectTLS](https://xmpp.org/extensions/xep-0368.html#glossary) handshake
-- [StartTLS](https://en.wikipedia.org/wiki/Opportunistic_TLS), but when the proper server certificates are provided
-- Authentication with [SASL](https://datatracker.ietf.org/doc/html/rfc4422#:~:text=Introduction%20The%20Simple%20Authentication%20and,oriented%20protocols%20via%20replaceable%20mechanisms.) Scram methods (available encryption methods can be found under the Authentication section)
-- Handling several Stream Features (such as bind, mechanisms, session, etc.)
-- Proper Stream Management (SM)
-- Error handling
-- Handling all stanza types (Message, Presence and IQ)
+### Core Protocol Support
 
-These features can be complex to implement but are essential for delivering a seamless and reliable user experience.
+- **DirectTLS**: Support for [DirectTLS](https://xmpp.org/extensions/xep-0368.html#glossary) handshake, allowing secure connections from the start
+- **StartTLS**: Support for [StartTLS](https://en.wikipedia.org/wiki/Opportunistic_TLS) with proper server certificate validation
+- **SASL Authentication**: Multiple authentication mechanisms including SCRAM-SHA-1, SCRAM-SHA-256, SCRAM-SHA-384, SCRAM-SHA-512, PLAIN, and ANONYMOUS
+- **Stream Features**: Automatic handling of stream features including bind, mechanisms, session, and more
+- **Stream Management (XEP-0198)**: Proper stream resumption and acknowledgment handling for reliable message delivery
+- **Error Handling**: Comprehensive error handling for connection, authentication, and protocol errors
+- **Stanza Types**: Full support for all XMPP stanza types (Message, Presence, and IQ)
+
+### XMPP Extensions (XEPs)
+
+Whixp implements numerous XMPP Extension Protocols:
+
+- **XEP-0030**: Service Discovery (Disco) - Discover server capabilities and features
+- **XEP-0050**: Ad-Hoc Commands - Execute server-side commands
+- **XEP-0059**: Result Set Management (RSM) - Pagination for large result sets
+- **XEP-0060**: Publish-Subscribe (PubSub) - Publish and subscribe to nodes
+- **XEP-0198**: Stream Management - Reliable message delivery and stream resumption
+- **XEP-0313**: Message Archive Management (MAM) - Query and retrieve archived messages
+- **XEP-0333**: Chat Markers - Read receipts and message display notifications
+- **XEP-0352**: Client State Indication (CSI) - Optimize traffic based on user activity
+- **XEP-0359**: Unique Stanza IDs - Track and correlate stanzas
+- **XEP-0430**: Inbox - Unified inbox for messages across conversations
+- **XEP-0082**: XMPP Date and Time Profiles - Timestamp handling
+- **XEP-0203**: Delayed Delivery - Handle delayed message timestamps
+
+### Advanced Features
+
+- **Performance Optimizations**: Message batching, rate limiting, and performance metrics
+- **Reconnection Policies**: Configurable automatic reconnection with backoff strategies
+- **Database Integration**: Built-in SQLite database for Stream Management state persistence
+- **IPv6 Support**: Full IPv6 connectivity support
+- **Keep-Alive**: Automatic connection keep-alive to prevent timeouts
+- **Logging**: Comprehensive logging system with configurable levels and timestamps
+- **JID Handling**: Full JID parsing, validation, and stringprep compliance
+- **Custom Extensions**: Easy-to-use extension system for custom payloads and features
+
+These features can be complex to implement but are essential for delivering a seamless and reliable user experience. Whixp handles all of these complexities internally, allowing you to focus on building your application rather than dealing with protocol details.
 
 It's time to dive into another critical aspect: the fundamentals of XMPP and how Whixp addresses these components. We'll also take this opportunity to look at some code examples.
