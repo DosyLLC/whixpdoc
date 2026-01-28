@@ -1,0 +1,269 @@
+---
+title: Publish-Subscribe (PubSub)
+version: 1
+---
+
+Publish-Subscribe (PubSub), defined in [XEP-0060](https://xmpp.org/extensions/xep-0060.html), is a messaging pattern that allows efficient and scalable distribution of information. It enables entities to publish data to nodes and allows subscribers to receive real-time updates when new data is published.
+
+## Overview
+
+PubSub enables:
+
+- Creating and managing pubsub nodes
+- Publishing data to nodes
+- Subscribing to nodes to receive updates
+- Configuring node behavior and access control
+- Managing subscriptions
+
+## Initializing PubSub
+
+Before using PubSub features, initialize it on your transport:
+
+```dart
+PubSub.initialize(whixp.transport);
+```
+
+## Creating Nodes
+
+Create a new pubsub node:
+
+```dart
+final result = await PubSub.createNode(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  node: 'my-node',
+  nodeType: PubSubNodeType.leaf,
+  callback: (iq) {
+    print('Node created successfully');
+  },
+  failureCallback: (error) {
+    print('Failed to create node: ${error.reason}');
+  },
+);
+```
+
+### Node Types
+
+- **`PubSubNodeType.leaf`**: A leaf node that contains published items
+- **`PubSubNodeType.collection`**: A collection node that contains other nodes
+
+## Publishing to Nodes
+
+Publish data to a node:
+
+```dart
+final payload = VCard4()..fullName = 'John Doe';
+
+final result = await PubSub.publishVCard(
+  whixp.transport,
+  payload,
+  callback: (iq) {
+    print('Published successfully');
+  },
+);
+```
+
+## Subscribing to Nodes
+
+Subscribe to receive updates from a node:
+
+```dart
+final result = await PubSub.subscribe(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  'my-node',
+  callback: (iq) {
+    print('Subscribed successfully');
+  },
+);
+```
+
+## Receiving PubSub Events
+
+Handle incoming pubsub events:
+
+```dart
+PubSub.initialize(whixp.transport);
+
+whixp.addEventHandler<Stanza>('my-node', (stanza) {
+  if (stanza is VCard4) {
+    print('Received vCard update: ${stanza.fullName}');
+  }
+});
+```
+
+## Node Configuration
+
+Retrieve node configuration:
+
+```dart
+final config = await PubSub.getNodeConfig(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  node: 'my-node',
+);
+
+if (config != null) {
+  // Access configuration fields
+  for (final field in config.fields) {
+    print('${field.variable}: ${field.values}');
+  }
+}
+```
+
+Update node configuration:
+
+```dart
+final config = Form(type: FormType.submit)
+  ..addFields([
+    Field(variable: 'pubsub#access_model', values: ['open']),
+    Field(variable: 'pubsub#publish_model', values: ['publishers']),
+  ]);
+
+await PubSub.setNodeConfig(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  'my-node',
+  config,
+);
+```
+
+## vCard4 Support
+
+PubSub includes built-in support for vCard4 (XEP-0292):
+
+### Publishing vCard
+
+```dart
+final vcard = VCard4()
+  ..fullName = 'John Doe'
+  ..email = 'john@example.com';
+
+await PubSub.publishVCard(whixp.transport, vcard);
+```
+
+### Retrieving vCard
+
+```dart
+final items = await PubSub.retrieveVCard(
+  whixp.transport,
+  JabberID('user@example.com'),
+);
+
+if (items.isNotEmpty) {
+  final latest = items.last;
+  if (latest.payload is VCard4) {
+    final vcard = latest.payload as VCard4;
+    print('Name: ${vcard.fullName}');
+    print('Email: ${vcard.email}');
+  }
+}
+```
+
+### Subscribing to vCard Updates
+
+```dart
+await PubSub.subscribeToVCardUpdates(
+  whixp.transport,
+  JabberID('user@example.com'),
+);
+```
+
+### Unsubscribing from vCard Updates
+
+```dart
+await PubSub.unsubscribeVCardUpdates(
+  whixp.transport,
+  JabberID('user@example.com'),
+);
+```
+
+## Unsubscribing
+
+Unsubscribe from a node:
+
+```dart
+await PubSub.unsubscribe(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  'my-node',
+);
+```
+
+## Deleting Nodes
+
+Delete a node (requires owner privileges):
+
+```dart
+await PubSub.deleteNode(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  'my-node',
+);
+```
+
+## Getting Subscriptions
+
+Retrieve subscriptions for a node:
+
+```dart
+final result = await PubSub.getNodeSubscriptions(
+  whixp.transport,
+  JabberID('pubsub.example.com'),
+  'my-node',
+);
+```
+
+## Complete Example
+
+Here's a complete example of using PubSub:
+
+```dart
+void main() {
+  final whixp = Whixp(
+    jabberID: 'user@example.com',
+    password: 'password',
+    internalDatabasePath: 'whixp',
+  );
+
+  whixp.addEventHandler('streamNegotiated', (_) async {
+    // Initialize PubSub
+    PubSub.initialize(whixp.transport);
+
+    // Create a node
+    await PubSub.createNode(
+      whixp.transport,
+      JabberID('pubsub.example.com'),
+      node: 'my-feeds',
+    );
+
+    // Subscribe to the node
+    await PubSub.subscribe(
+      whixp.transport,
+      JabberID('pubsub.example.com'),
+      'my-feeds',
+    );
+
+    // Publish data
+    final customStanza = CustomStanza('Hello, World!');
+    // ... publish using custom payload
+  });
+
+  // Handle incoming pubsub events
+  whixp.addEventHandler<Stanza>('my-feeds', (stanza) {
+    print('Received update: $stanza');
+  });
+
+  whixp.connect();
+}
+```
+
+## Best Practices
+
+1. **Initialize first**: Always call `PubSub.initialize()` before using PubSub features
+2. **Handle errors**: Always provide error callbacks for pubsub operations
+3. **Manage subscriptions**: Keep track of your subscriptions and clean them up when needed
+4. **Use appropriate node types**: Choose leaf nodes for data and collection nodes for organization
+5. **Configure access**: Set appropriate access models for your nodes based on your use case
+
+PubSub is a powerful feature for building distributed systems, notification services, and real-time data distribution applications.
