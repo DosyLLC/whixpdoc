@@ -4,11 +4,11 @@ sidebar_position: 9
 version: 1
 ---
 
-Whixp uses the [Hive](https://pub.dev/packages/hive) database as a built-in approach to handle the primitive parts of the package with the local system.
+Whixp uses the [Drift](https://drift.simonbinder.eu/) (formerly known as Moor) database framework as a built-in approach to handle the persistent parts of the package with the local system. Drift is a reactive persistence library for Dart and Flutter, built on top of SQLite.
 
-Managing the stream resumption ID and saving this unique ID to the local database requires a local database solution. In addition to this ID, the user needs to save the last acknowledged stanzas, unacknowledged stanzas, and other properties related to this XEP. We will discuss what stream resumption is and why it is beneficial.
+Managing the stream resumption ID and saving this unique ID to the local database requires a local database solution. In addition to this ID, Whixp needs to save the last acknowledged stanzas, unacknowledged stanzas, and other properties related to Stream Management (XEP-0198). This enables the client to resume a stream after a network interruption without losing messages or requiring re-authentication.
 
-By default, this plugin is enabled in Whixp, and you cannot disable it now. Therefore, you need to declare the database path whether you are using this package in a Dart application or a Flutter application.
+By default, database functionality is enabled in Whixp and cannot be disabled, as it's essential for Stream Management and session persistence. Therefore, you must declare the database path whether you are using this package in a Dart application or a Flutter application.
 
 :::warning
 If you forget to declare the database path, you will encounter an exception related to this error.
@@ -28,18 +28,73 @@ To declare the path in the properties, you can assign any name you like to the `
 final whixp = Whixp(host: 'localhost', internalDatabasePath: 'anonymous');
 ```
 
-This property behaves differently in a Flutter application. It would help if you retrieved the application's local path from the operating system. You can achieve this using packages such as [path_provider](https://pub.dev/packages/path_provider) or by creating the desired folder within the retrieved directory.
+This property behaves differently in a Flutter application. You should retrieve the application's local path from the operating system. You can achieve this using packages such as [path_provider](https://pub.dev/packages/path_provider) or by creating the desired folder within the retrieved directory.
 
 ```dart
 import 'package:path_provider/path_provider.dart';
+import 'dart:io' as io;
 
 late final io.Directory _currentDirectory;
 
-void main() {
+void main() async {
     _currentDirectory = await getApplicationDocumentsDirectory();
 
-    final whixpPath = '${_currentDirectory.path}/example';
+    final whixpPath = '${_currentDirectory.path}/whixp';
 
-    final whixp = Whixp(host: 'localhost', internalDatabasePath: whixpPath);
+    final whixp = Whixp(
+      host: 'localhost',
+      internalDatabasePath: whixpPath,
+    );
+
+    whixp.connect();
 }
 ```
+
+## Database Storage
+
+The database stores several types of information:
+
+1. **Stream Management State**: Resumption IDs, acknowledged stanza counts, and unacknowledged stanzas for each JID/resource combination.
+2. **Session Information**: Connection state and stream management metadata.
+3. **Message Tracking**: Information needed for reliable message delivery and stream resumption.
+
+## Database Path Considerations
+
+- **Dart Applications**: You can use a simple string path relative to the current working directory or an absolute path.
+- **Flutter Applications**: Always use `path_provider` to get platform-specific directories. Common choices include:
+  - `getApplicationDocumentsDirectory()`: For user data that should persist
+  - `getApplicationSupportDirectory()`: For application support files
+  - `getTemporaryDirectory()`: For temporary data (not recommended for Whixp)
+
+## Database Cleanup
+
+The database files are automatically created and managed by Whixp. If you need to reset the database (for example, during testing or troubleshooting), you can delete the database files:
+
+```dart
+import 'dart:io';
+
+// Delete database files
+final dbPath = '${_currentDirectory.path}/whixp';
+final dbFile = File('$dbPath.db');
+final dbWalFile = File('$dbPath.db-wal');
+final dbShmFile = File('$dbPath.db-shm');
+
+if (await dbFile.exists()) await dbFile.delete();
+if (await dbWalFile.exists()) await dbWalFile.delete();
+if (await dbShmFile.exists()) await dbShmFile.delete();
+```
+
+:::warning
+Deleting the database will remove all stored Stream Management state. This means stream resumption will not work until new state is saved, and you may need to re-authenticate after network interruptions.
+:::
+
+## Database Performance
+
+Whixp's database operations are optimized for performance:
+
+- Database writes are asynchronous and don't block the main thread
+- Stream Management state is cached in memory and periodically flushed to disk
+- The database uses SQLite's WAL (Write-Ahead Logging) mode for better concurrency
+- Indexes are automatically created for efficient queries
+
+For most applications, the database overhead is minimal and won't impact performance. However, if you're handling very high message volumes, you may want to monitor database size and consider periodic cleanup of old Stream Management state.
