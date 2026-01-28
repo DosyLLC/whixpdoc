@@ -1,0 +1,166 @@
+---
+title: Inbox
+version: 1
+---
+
+The Inbox extension, defined in [XEP-0430](https://xmpp.org/extensions/xep-0430.html), provides a unified inbox for messages across all conversations. It allows clients to retrieve a list of active conversations and unread messages, making it easier to implement inbox-like interfaces.
+
+## Overview
+
+The Inbox extension enables:
+
+- Retrieving a list of active conversations
+- Getting unread message counts
+- Accessing the most recent messages from each conversation
+- Pagination through inbox items
+
+## Querying the Inbox
+
+Use the `Inbox.queryInbox` method to retrieve inbox items:
+
+```dart
+final result = await Inbox.queryInbox(
+  whixp.transport,
+  pagination: RSMSet(max: 25),
+);
+```
+
+## Processing Inbox Results
+
+Inbox results are returned as messages containing `InboxResult` payloads:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+  if (message == null) return;
+
+  final results = message.get<InboxResult>();
+  if (results.isEmpty) return;
+
+  for (final result in results) {
+    final forwarded = result.forwarded;
+    final actual = forwarded?.actual;
+
+    if (actual is Message) {
+      print('Conversation: ${result.box}');
+      print('Archive: ${result.archive}');
+      print('Unread: ${result.unread}');
+      print('Mute: ${result.mute}');
+      print('Message: ${actual.body}');
+      print('From: ${actual.from}');
+      print('Timestamp: ${forwarded?.delay?.stamp}');
+    }
+  }
+});
+```
+
+## Complete Example
+
+Here's a complete example of querying the inbox:
+
+```dart
+Future<void> getInbox({String? lastItem}) async {
+  final result = await Inbox.queryInbox(
+    whixp.transport,
+    pagination: RSMSet(
+      max: 25,
+      after: lastItem,
+    ),
+  );
+
+  final fin = result.payload is InboxFin
+    ? result.payload as InboxFin
+    : null;
+
+  if (fin != null) {
+    print('Active conversations: ${fin.activeConversation}');
+    print('Unread messages: ${fin.unreadMessages}');
+    print('Last item: ${fin.last?.lastItem}');
+
+    // Continue pagination if needed
+    final nextItem = fin.last?.lastItem;
+    if (nextItem != null && nextItem != lastItem) {
+      await getInbox(lastItem: nextItem);
+    }
+  }
+}
+
+// Handle incoming inbox results
+whixp.addEventHandler<Message>('message', (message) {
+  final results = message?.get<InboxResult>();
+  if (results?.isEmpty ?? true) return;
+
+  for (final result in results!) {
+    print('Box: ${result.box}');
+    print('Archive: ${result.archive}');
+    print('Unread: ${result.unread}');
+    print('Mute: ${result.mute}');
+
+    final forwarded = result.forwarded;
+    if (forwarded?.actual is Message) {
+      final msg = forwarded!.actual as Message;
+      print('Message: ${msg.body}');
+      print('From: ${msg.from}');
+    }
+  }
+});
+```
+
+## Inbox Result Properties
+
+Each `InboxResult` contains:
+
+- **`box`**: The conversation identifier (typically a JID)
+- **`archive`**: Whether this conversation is archived
+- **`unread`**: Number of unread messages in this conversation
+- **`mute`**: Whether notifications are muted for this conversation
+- **`forwarded`**: The forwarded message with delay information
+
+## Pagination
+
+Use RSM for pagination through inbox items:
+
+```dart
+Future<void> getAllInboxItems() async {
+  String? lastItem;
+
+  do {
+    final result = await Inbox.queryInbox(
+      whixp.transport,
+      pagination: RSMSet(
+        max: 25,
+        after: lastItem,
+      ),
+    );
+
+    final fin = result.payload is InboxFin
+      ? result.payload as InboxFin
+      : null;
+
+    if (fin == null) break;
+
+    lastItem = fin.last?.lastItem;
+
+    // Process results...
+
+  } while (lastItem != null);
+}
+```
+
+## InboxFin Properties
+
+The `InboxFin` result contains:
+
+- **`activeConversation`**: Number of active conversations
+- **`unreadMessages`**: Total number of unread messages
+- **`last`**: RSM set with pagination information
+- **`complete`**: Whether all results have been returned
+
+## Best Practices
+
+1. **Use pagination**: Always paginate through inbox items to avoid loading too much data at once
+2. **Cache locally**: Cache inbox items locally to reduce server queries
+3. **Update regularly**: Periodically refresh the inbox to get new messages
+4. **Handle unread counts**: Use the unread count to show badges or notifications
+5. **Respect mute settings**: Check the mute property before showing notifications
+
+The Inbox extension is particularly useful for building modern messaging applications with conversation lists and unread message indicators.
