@@ -1,0 +1,203 @@
+---
+title: Result Set Management (RSM)
+version: 1
+---
+
+Result Set Management (RSM), defined in [XEP-0059](https://xmpp.org/extensions/xep-0059.html), provides a standardized way to paginate through large result sets. It's used by many XMPP extensions like MAM, Inbox, and PubSub to handle pagination efficiently.
+
+## Overview
+
+RSM enables:
+
+- Paginating through large result sets
+- Requesting specific pages
+- Getting result set counts
+- Navigating forward and backward through results
+
+## Basic Pagination
+
+Limit the number of results:
+
+```dart
+final rsm = RSM.limitNumberOfItems(25);
+
+// Use with MAM
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+## Requesting the Last Page
+
+Request the last page of results:
+
+```dart
+final rsm = RSM.requestLastPage(25);
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+## Paginating Backwards
+
+Page backwards through results:
+
+```dart
+final rsm = RSM.pageBackwards(25);
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+## Paginating with Cursors
+
+Use `after` to continue from a specific point:
+
+```dart
+final rsm = RSMSet(
+  max: 25,
+  after: 'last-item-id',
+);
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+Use `before` to get items before a specific point:
+
+```dart
+final rsm = RSMSet(
+  max: 25,
+  before: 'first-item-id',
+);
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+## Getting Item Count
+
+Get the total count of items without retrieving them:
+
+```dart
+final rsm = RSM.getItemCount();
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+
+// Check the count in the result
+if (result.payload is MAMFin) {
+  final fin = result.payload as MAMFin;
+  print('Total items: ${fin.count}');
+}
+```
+
+## Retrieving Pages Out of Order
+
+Retrieve a specific page by index:
+
+```dart
+final rsm = RSM.retrievePageOutOfOrder(5, max: 25);
+
+final result = await MAM.queryArchive(
+  whixp.transport,
+  pagination: rsm,
+);
+```
+
+## Complete Pagination Example
+
+Here's a complete example of paginating through all results:
+
+```dart
+Future<void> getAllMessages() async {
+  String? lastItem;
+  int page = 0;
+
+  do {
+    final rsm = RSMSet(
+      max: 25,
+      after: lastItem,
+    );
+
+    final result = await MAM.queryArchive(
+      whixp.transport,
+      pagination: rsm,
+    );
+
+    final fin = result.payload is MAMFin
+      ? result.payload as MAMFin
+      : null;
+
+    if (fin == null) break;
+
+    print('Page ${++page}: ${fin.complete ? "Complete" : "More available"}');
+
+    // Process results...
+    // Handle incoming MAM results in message handler
+
+    lastItem = fin.last?.lastItem;
+
+  } while (lastItem != null && !fin.complete);
+}
+```
+
+## Processing RSM Results
+
+RSM results are typically included in the response:
+
+```dart
+// With MAM
+if (result.payload is MAMFin) {
+  final fin = result.payload as MAMFin;
+
+  print('First item: ${fin.first}');
+  print('Last item: ${fin.last}');
+  print('Count: ${fin.count}');
+  print('Complete: ${fin.complete}');
+
+  // Use fin.last.lastItem for next page
+  final nextPage = fin.last?.lastItem;
+}
+
+// With Inbox
+if (result.payload is InboxFin) {
+  final fin = result.payload as InboxFin;
+
+  print('Last item: ${fin.last?.lastItem}');
+  // Use for next page
+}
+```
+
+## RSMSet Parameters
+
+The `RSMSet` class supports various parameters:
+
+- **`max`**: Maximum number of items to return
+- **`after`**: Continue after this item ID
+- **`before`**: Get items before this item ID
+- **`index`**: Retrieve a specific page by index
+- **`first`**: First item ID (used in responses)
+- **`last`**: Last item ID (used in responses)
+- **`count`**: Total count of items (used in responses)
+
+## Best Practices
+
+1. **Use appropriate page sizes**: Choose page sizes that balance performance and user experience (typically 25-50 items)
+2. **Handle complete flag**: Check the `complete` flag to know when all results have been retrieved
+3. **Cache cursors**: Store cursor positions (last item IDs) to enable efficient navigation
+4. **Handle empty results**: Always check if results are empty before processing
+5. **Use count sparingly**: Only request counts when necessary, as they can be expensive
+
+RSM is essential for efficiently handling large result sets in XMPP applications, ensuring good performance and user experience.
