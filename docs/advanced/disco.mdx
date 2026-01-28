@@ -1,0 +1,233 @@
+---
+title: Service Discovery (Disco)
+version: 1
+---
+
+Service Discovery (Disco), defined in [XEP-0030](https://xmpp.org/extensions/xep-0030.html), allows XMPP entities to discover information about other entities on the network, including their capabilities, features, and associated items.
+
+## Overview
+
+Service Discovery enables:
+
+- Discovering server capabilities and features
+- Finding available services and components
+- Querying entity identities and features
+- Browsing hierarchical service structures
+
+## Discovering Information
+
+Query an entity for its capabilities and features:
+
+```dart
+final info = DiscoInformation();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('server@example.com')
+  ..payload = info;
+
+final result = await iq.send(whixp.transport);
+
+if (result.payload is DiscoInformation) {
+  final disco = result.payload as DiscoInformation;
+
+  // List all features
+  for (final feature in disco.features) {
+    print('Feature: ${feature.variable}');
+  }
+
+  // List all identities
+  for (final identity in disco.identities) {
+    print('Identity: ${identity.name} (${identity.category}/${identity.type})');
+  }
+}
+```
+
+## Discovering Items
+
+Query an entity for its associated items (child services or components):
+
+```dart
+final items = DiscoItems();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('server@example.com')
+  ..payload = items;
+
+final result = await iq.send(whixp.transport);
+
+if (result.payload is DiscoItems) {
+  final discoItems = result.payload as DiscoItems;
+
+  for (final item in discoItems.items) {
+    print('Item: ${item.jid} - ${item.name} (node: ${item.node})');
+  }
+}
+```
+
+## Querying Specific Nodes
+
+Query information about a specific node:
+
+```dart
+final info = DiscoInformation(node: 'specific-node');
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('server@example.com')
+  ..payload = info;
+
+final result = await iq.send(whixp.transport);
+```
+
+## Adding Identities
+
+When responding to disco queries, you can add identities:
+
+```dart
+final info = DiscoInformation()
+  ..addIdentity('My Client', 'client', type: 'mobile');
+
+final iq = IQ(generateID: true)
+  ..type = 'result'
+  ..payload = info;
+```
+
+## Adding Features
+
+Add features to your disco response:
+
+```dart
+final info = DiscoInformation()
+  ..addFeature([
+    'urn:xmpp:mam:2',
+    'urn:xmpp:sm:3',
+    'urn:xmpp:csi:0',
+  ]);
+
+final iq = IQ(generateID: true)
+  ..type = 'result'
+  ..payload = info;
+```
+
+## Complete Example
+
+Here's a complete example of discovering server capabilities:
+
+```dart
+Future<void> discoverServer() async {
+  // Discover server information
+  final info = DiscoInformation();
+  final infoIq = IQ(generateID: true)
+    ..type = 'get'
+    ..payload = info;
+
+  final infoResult = await infoIq.send(whixp.transport);
+
+  if (infoResult.payload is DiscoInformation) {
+    final disco = infoResult.payload as DiscoInformation;
+
+    print('Server Features:');
+    for (final feature in disco.features) {
+      print('  - ${feature.variable}');
+    }
+
+    print('\nServer Identities:');
+    for (final identity in disco.identities) {
+      print('  - ${identity.name} (${identity.category}/${identity.type})');
+    }
+  }
+
+  // Discover server items
+  final items = DiscoItems();
+  final itemsIq = IQ(generateID: true)
+    ..type = 'get'
+    ..payload = items;
+
+  final itemsResult = await itemsIq.send(whixp.transport);
+
+  if (itemsResult.payload is DiscoItems) {
+    final discoItems = itemsResult.payload as DiscoItems;
+
+    print('\nServer Items:');
+    for (final item in discoItems.items) {
+      print('  - ${item.jid} - ${item.name ?? "Unnamed"}');
+
+      // Optionally discover each item
+      if (item.node != null) {
+        final itemInfo = DiscoInformation(node: item.node);
+        final itemInfoIq = IQ(generateID: true)
+          ..type = 'get'
+          ..to = item.jid
+          ..payload = itemInfo;
+
+        final itemInfoResult = await itemInfoIq.send(whixp.transport);
+        // Process item information...
+      }
+    }
+  }
+}
+```
+
+## Checking for Specific Features
+
+Check if an entity supports a specific feature:
+
+```dart
+Future<bool> supportsFeature(String featureNamespace) async {
+  final info = DiscoInformation();
+  final iq = IQ(generateID: true)
+    ..type = 'get'
+    ..payload = info;
+
+  final result = await iq.send(whixp.transport);
+
+  if (result.payload is DiscoInformation) {
+    final disco = result.payload as DiscoInformation;
+    return disco.features.any(
+      (feature) => feature.variable == featureNamespace,
+    );
+  }
+
+  return false;
+}
+
+// Usage
+final supportsMAM = await supportsFeature('urn:xmpp:mam:2');
+if (supportsMAM) {
+  print('Server supports Message Archive Management');
+}
+```
+
+## Responding to Disco Queries
+
+If you're building a component or service, you can respond to disco queries:
+
+```dart
+whixp.addEventHandler<IQ>('iq', (iq) {
+  if (iq == null) return;
+
+  if (iq.type == 'get' && iq.payload is DiscoInformation) {
+    final response = IQ(generateID: true)
+      ..type = 'result'
+      ..to = iq.from
+      ..id = iq.id
+      ..payload = DiscoInformation()
+        ..addIdentity('My Service', 'component', type: 'generic')
+        ..addFeature([
+          'urn:xmpp:mam:2',
+          'urn:xmpp:sm:3',
+        ]);
+
+    whixp.send(response);
+  }
+});
+```
+
+## Best Practices
+
+1. **Cache results**: Cache disco results to avoid repeated queries
+2. **Check before using**: Always check if a feature is supported before using it
+3. **Handle errors**: Always handle errors when querying disco information
+4. **Use appropriate nodes**: Query specific nodes when you need detailed information
+5. **Respond accurately**: If responding to queries, ensure your responses accurately reflect your capabilities
+
+Service Discovery is essential for building interoperable XMPP applications that can adapt to different server capabilities.
