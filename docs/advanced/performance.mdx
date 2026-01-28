@@ -1,0 +1,235 @@
+---
+title: Performance Features
+version: 1
+---
+
+Whixp includes several performance optimizations to ensure efficient operation, especially under high message volumes. These features include message batching, rate limiting, bounded queues, and comprehensive performance metrics.
+
+## Overview
+
+Performance features in Whixp include:
+
+- **Message Batching**: Groups multiple stanzas together to reduce network overhead
+- **Rate Limiting**: Prevents overwhelming the server with too many requests
+- **Bounded Queues**: Limits memory usage by capping queue sizes
+- **Performance Metrics**: Tracks various performance indicators for monitoring
+
+## Performance Metrics
+
+Access performance metrics through the transport:
+
+```dart
+final metrics = whixp.transport.metrics;
+
+// Get summary
+final summary = metrics.getSummary();
+print('Stanzas sent: ${summary['stanzasSent']}');
+print('Stanzas received: ${summary['stanzasReceived']}');
+print('Average parsing time: ${summary['averageParsingTimeMs']}ms');
+```
+
+### Available Metrics
+
+The metrics system tracks:
+
+- **Stanza counts**: Sent, received, and parsed
+- **Batch statistics**: Batch sizes, flush times, and counts
+- **Queue statistics**: Current size, max size, and overflows
+- **Rate limiting**: Number of rate limit hits
+- **Parsing performance**: Average parsing times
+- **Uptime**: Time since metrics were reset
+
+### Getting Metrics Summary
+
+```dart
+final summary = metrics.getSummary();
+
+print('Performance Summary:');
+print('  Uptime: ${summary['uptimeSeconds']}s');
+print('  Stanzas sent: ${summary['stanzasSent']}');
+print('  Stanzas received: ${summary['stanzasReceived']}');
+print('  Stanzas parsed: ${summary['stanzasParsed']}');
+print('  Batches flushed: ${summary['batchesFlushed']}');
+print('  Average batch size: ${summary['averageBatchSize']}');
+print('  Queue overflows: ${summary['queueOverflows']}');
+print('  Rate limit hits: ${summary['rateLimitHits']}');
+```
+
+### Formatted Summary
+
+Get a formatted string representation:
+
+```dart
+final formatted = metrics.getFormattedSummary();
+print(formatted);
+```
+
+### Resetting Metrics
+
+Reset metrics to start fresh:
+
+```dart
+metrics.reset();
+```
+
+## Message Batching
+
+Message batching groups multiple stanzas together before sending, reducing network overhead and improving efficiency.
+
+### How Batching Works
+
+When batching is enabled:
+
+1. Stanzas are collected into batches
+2. Batches are flushed when they reach a certain size or time limit
+3. Multiple stanzas are sent together in a single network operation
+
+### Accessing Batch Information
+
+```dart
+final metrics = whixp.transport.metrics;
+final summary = metrics.getSummary();
+
+print('Current batch size: ${summary['currentBatchSize']}');
+print('Batches flushed: ${summary['batchesFlushed']}');
+print('Average batch size: ${summary['averageBatchSize']}');
+print('Average flush time: ${summary['averageBatchFlushTimeMs']}ms');
+```
+
+## Rate Limiting
+
+Rate limiting prevents overwhelming the server by limiting the number of requests per time period.
+
+### Rate Limit Hits
+
+Monitor rate limit hits:
+
+```dart
+final metrics = whixp.transport.metrics;
+final summary = metrics.getSummary();
+
+if (summary['rateLimitHits'] > 0) {
+  print('Rate limit was hit ${summary['rateLimitHits']} times');
+  print('Consider adjusting your message sending rate');
+}
+```
+
+## Queue Management
+
+Bounded queues prevent excessive memory usage by limiting queue sizes.
+
+### Queue Statistics
+
+```dart
+final metrics = whixp.transport.metrics;
+final summary = metrics.getSummary();
+
+print('Current queue size: ${summary['currentQueueSize']}');
+print('Max queue size: ${summary['maxQueueSize']}');
+print('Queue overflows: ${summary['queueOverflows']}');
+```
+
+### Handling Overflows
+
+If queue overflows occur frequently, consider:
+
+1. Increasing queue size limits (if configurable)
+2. Reducing message sending rate
+3. Processing messages more efficiently
+4. Implementing backpressure mechanisms
+
+## Monitoring Performance
+
+### Periodic Monitoring
+
+Set up periodic monitoring of performance metrics:
+
+```dart
+Timer.periodic(Duration(seconds: 10), (timer) {
+  final metrics = whixp.transport.metrics;
+  final summary = metrics.getSummary();
+
+  print('Performance (last 10s):');
+  print('  Sent: ${summary['stanzasPerSecondSent']}/s');
+  print('  Received: ${summary['stanzasPerSecondReceived']}/s');
+  print('  Parsed: ${summary['stanzasPerSecondParsed']}/s');
+});
+```
+
+### Performance Alerts
+
+Set up alerts for performance issues:
+
+```dart
+Timer.periodic(Duration(minutes: 1), (timer) {
+  final metrics = whixp.transport.metrics;
+  final summary = metrics.getSummary();
+
+  // Alert on high queue size
+  if (summary['currentQueueSize'] > 1000) {
+    print('WARNING: High queue size: ${summary['currentQueueSize']}');
+  }
+
+  // Alert on frequent rate limiting
+  if (summary['rateLimitHits'] > 10) {
+    print('WARNING: Rate limiting occurred ${summary['rateLimitHits']} times');
+  }
+
+  // Alert on queue overflows
+  if (summary['queueOverflows'] > 0) {
+    print('WARNING: Queue overflow occurred ${summary['queueOverflows']} times');
+  }
+});
+```
+
+## Best Practices
+
+1. **Monitor regularly**: Check performance metrics periodically to identify issues early
+2. **Watch for overflows**: Queue overflows indicate performance problems
+3. **Respect rate limits**: If rate limiting occurs frequently, reduce your sending rate
+4. **Optimize parsing**: If parsing times are high, consider optimizing message processing
+5. **Reset when needed**: Reset metrics periodically to get fresh statistics
+
+## Complete Example
+
+Here's a complete example of monitoring performance:
+
+```dart
+void main() {
+  final whixp = Whixp(
+    jabberID: 'user@example.com',
+    password: 'password',
+    internalDatabasePath: 'whixp',
+  );
+
+  // Monitor performance every 10 seconds
+  Timer.periodic(Duration(seconds: 10), (timer) {
+    final metrics = whixp.transport.metrics;
+    final summary = metrics.getSummary();
+
+    print('\n=== Performance Metrics ===');
+    print('Uptime: ${summary['uptimeSeconds']}s');
+    print('Stanzas:');
+    print('  Sent: ${summary['stanzasSent']} (${summary['stanzasPerSecondSent']}/s)');
+    print('  Received: ${summary['stanzasReceived']} (${summary['stanzasPerSecondReceived']}/s)');
+    print('  Parsed: ${summary['stanzasParsed']} (${summary['stanzasPerSecondParsed']}/s)');
+    print('Batching:');
+    print('  Current batch: ${summary['currentBatchSize']}');
+    print('  Batches flushed: ${summary['batchesFlushed']}');
+    print('  Avg batch size: ${summary['averageBatchSize']}');
+    print('Queue:');
+    print('  Current size: ${summary['currentQueueSize']}');
+    print('  Max size: ${summary['maxQueueSize']}');
+    print('  Overflows: ${summary['queueOverflows']}');
+    print('Rate Limiting:');
+    print('  Hits: ${summary['rateLimitHits']}');
+    print('Parsing:');
+    print('  Avg time: ${summary['averageParsingTimeMs']}ms');
+    print('========================\n');
+  });
+
+  whixp.connect();
+}
+```
+
+Performance features in Whixp help ensure your application runs efficiently even under high load, providing the metrics you need to monitor and optimize performance.
