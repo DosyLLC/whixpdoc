@@ -142,6 +142,61 @@ whixp.addEventHandler<Message>('message', (message) {
   });
 ```
 
+### Message Properties
+
+The `Message` class provides several properties to access message information:
+
+- **`body`**: The main text content of the message
+- **`subject`**: Optional subject line for the message
+- **`from`**: The sender's JabberID
+- **`to`**: The recipient's JabberID
+- **`type`**: The message type (chat, groupchat, headline, normal, error)
+- **`thread`**: Thread identifier for grouping related messages
+- **`extensions`**: List of message extensions
+- **`payloads`**: List of child stanzas/payloads
+
+### Filtering Messages
+
+You can filter incoming messages based on various criteria:
+
+```dart
+whixp.addEventHandler<Message>('message', (message) {
+    if (message == null) return;
+
+    // Only process chat messages
+    if (message.type != 'chat') return;
+
+    // Only process messages from a specific user
+    if (message.from?.bare != 'alyosha@localhost') return;
+
+    // Process the message
+    print('Chat message: ${message.body}');
+  });
+```
+
+### Message Threading
+
+XMPP supports message threading for grouping related messages in a conversation. You can access and set thread identifiers:
+
+```dart
+// Receiving a message with a thread
+whixp.addEventHandler<Message>('message', (message) {
+    if (message == null) return;
+
+    final thread = message.thread;
+    if (thread != null) {
+      print('Message is part of thread: $thread');
+    }
+  });
+
+// Sending a message with a thread
+final message = Message(body: 'Reply to previous message')
+  ..to = JabberID('alyosha@localhost')
+  ..thread = 'thread-id-123';
+
+whixp.send(message);
+```
+
 ### Handling stanza IDs in messages
 
 When working with XMPP messages, it’s often important to track and manage message identifiers. Stanza IDs are unique identifiers that help correlate requests and responses, making it easier to handle message flows and ensure reliable communication.
@@ -168,5 +223,5 @@ The `get` method allows you to access child payloads associated with a message. 
 final payloads = message.get<Stanza>();
 ```
 
-`PayloadType` is the type of the payload you wish to retrieve. It could be any calss that extends `Stanza`.
+`PayloadType` is the type of the payload you wish to retrieve. It could be any class that extends `Stanza`.
 :::
