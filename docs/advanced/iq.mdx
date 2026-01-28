@@ -1,0 +1,244 @@
+---
+title: IQ Stanzas
+version: 1
+---
+
+IQ (Info/Query) stanzas are XMPP's method of requesting and modifying information, similar to HTTP's GET and POST methods. They form the foundation for most XMPP protocol interactions beyond simple messaging and presence.
+
+## Understanding IQ Stanzas
+
+Each IQ stanza must have an `id` attribute that associates the request with its response. XMPP entities must always respond to IQ stanzas of type `get` or `set` with a corresponding `result` or `error` response.
+
+### IQ Types
+
+IQ stanzas have four possible types:
+
+- **`get`**: Request information from the server or another entity
+- **`set`**: Request modification of information or state
+- **`result`**: Response to a successful `get` or `set` request
+- **`error`**: Response indicating an error occurred
+
+### Basic IQ Usage
+
+Creating and sending an IQ stanza in Whixp:
+
+```dart
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('server@example.com')
+  ..payload = DiscoInformation();
+
+final result = await iq.send(whixp.transport);
+```
+
+## Sending IQ Stanzas
+
+The `send` method on an IQ stanza returns a `Future<IQ>` that completes when the response is received:
+
+```dart
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..to = JabberID('user@example.com')
+  ..payload = Version();
+
+try {
+  final result = await iq.send(
+    whixp.transport,
+    timeout: 10, // seconds
+  );
+
+  if (result.type == 'result') {
+    // Process successful response
+    print('IQ request succeeded');
+  } else if (result.type == 'error') {
+    // Handle error
+    print('IQ request failed: ${result.error?.text}');
+  }
+} catch (e) {
+  print('IQ request timed out or failed: $e');
+}
+```
+
+## Callbacks
+
+You can provide callbacks for handling responses:
+
+```dart
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = DiscoInformation();
+
+await iq.send(
+  whixp.transport,
+  callback: (result) {
+    // Called when result is received
+    print('Received result: ${result.payload}');
+  },
+  failureCallback: (error) {
+    // Called when error is received
+    print('Error: ${error.reason} - ${error.text}');
+  },
+  timeoutCallback: () {
+    // Called when request times out
+    print('Request timed out');
+  },
+  timeout: 5,
+);
+```
+
+## IQ Payloads
+
+IQ stanzas can contain various payloads depending on the operation:
+
+### Service Discovery
+
+```dart
+// Discover server information
+final info = DiscoInformation();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = info;
+
+final result = await iq.send(whixp.transport);
+if (result.payload is DiscoInformation) {
+  final disco = result.payload as DiscoInformation;
+  for (final feature in disco.features) {
+    print('Feature: ${feature.variable}');
+  }
+}
+```
+
+### Version Information
+
+```dart
+final version = Version();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = version;
+
+final result = await iq.send(whixp.transport);
+```
+
+### Custom Payloads
+
+You can create custom payloads by extending the `Stanza` class:
+
+```dart
+class CustomPayload extends Stanza {
+  final String data;
+
+  CustomPayload(this.data);
+
+  @override
+  XmlElement toXML() => WhixpUtils.xmlElement(
+    'custom',
+    attributes: {'data': data},
+  );
+
+  @override
+  String get name => 'custom';
+}
+
+final iq = IQ(generateID: true)
+  ..type = 'set'
+  ..payload = CustomPayload('example');
+
+await iq.send(whixp.transport);
+```
+
+## Error Handling
+
+IQ stanzas can return error responses. Always check for errors:
+
+```dart
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = DiscoInformation();
+
+final result = await iq.send(whixp.transport);
+
+if (result.error != null) {
+  final error = result.error!;
+  print('Error type: ${error.type}');
+  print('Error condition: ${error.condition}');
+  print('Error text: ${error.text}');
+}
+```
+
+## Timeout Handling
+
+IQ requests can timeout if no response is received. The default timeout is 5 seconds, but you can customize it:
+
+```dart
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = DiscoInformation();
+
+try {
+  final result = await iq.send(
+    whixp.transport,
+    timeout: 30, // 30 seconds
+  );
+} on StanzaException catch (e) {
+  if (e is TimeoutException) {
+    print('Request timed out after 30 seconds');
+  }
+}
+```
+
+## Listening to IQ Responses
+
+While the `send` method handles responses automatically, you can also listen to incoming IQ stanzas:
+
+```dart
+whixp.addEventHandler<IQ>('iq', (iq) {
+  if (iq == null) return;
+
+  // Handle incoming IQ stanzas
+  if (iq.type == 'get' && iq.payload is DiscoInformation) {
+    // Respond to service discovery request
+    final response = IQ(generateID: true)
+      ..type = 'result'
+      ..to = iq.from
+      ..id = iq.id;
+
+    whixp.send(response);
+  }
+});
+```
+
+## Best Practices
+
+1. **Always generate IDs**: Use `generateID: true` when creating IQ stanzas to ensure unique identification
+2. **Handle timeouts**: Always provide timeout handling for IQ requests
+3. **Check for errors**: Always verify that responses don't contain errors before processing
+4. **Use appropriate types**: Use `get` for queries and `set` for modifications
+5. **Match request IDs**: When responding to IQ requests, ensure the response ID matches the request ID
+
+## Common IQ Operations
+
+### Service Discovery
+
+```dart
+// Discover server features
+final info = DiscoInformation();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = info;
+
+final result = await iq.send(whixp.transport);
+```
+
+### Version Query
+
+```dart
+// Query server version
+final version = Version();
+final iq = IQ(generateID: true)
+  ..type = 'get'
+  ..payload = version;
+
+final result = await iq.send(whixp.transport);
+```
+
+IQ stanzas are the foundation for most advanced XMPP features. Understanding how to use them effectively is essential for building robust XMPP applications.
